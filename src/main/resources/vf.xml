@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<SOAP-ENV:Envelope xmlns:con="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/ConsultaLR.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SOAP-ENV:Body>
+    <RegFactuSistemaFacturacion xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd">
+      <Cabecera>
+        <ObligadoEmision xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+          <NombreRazon>天生我才</NombreRazon>
+          <NIF>B56803240</NIF>
+        </ObligadoEmision>
+      </Cabecera>
+      <RegistroFactura>
+        <RegistroAlta xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+          <IDVersion>1.0</IDVersion>
+          <IDFactura>
+            <IDEmisorFactura>B56803240</IDEmisorFactura>
+            <NumSerieFactura>F2-B56803240-010125000001</NumSerieFactura>
+            <FechaExpedicionFactura>05-09-2025</FechaExpedicionFactura>
+          </IDFactura>
+          <NombreRazonEmisor>天生我才</NombreRazonEmisor>
+          <Subsanacion>N</Subsanacion>
+          <RechazoPrevio>N</RechazoPrevio>
+          <TipoFactura>F2</TipoFactura>
+          <FechaOperacion>05-09-2025</FechaOperacion>
+          <DescripcionOperacion>Reintento debido a razones de red, causando retraso, número de documento comercial:,RO0101202509050001</DescripcionOperacion>
+          <Macrodato>N</Macrodato>
+          <Cupon>N</Cupon>
+          <Desglose>
+            <DetalleDesglose>
+              <Impuesto>01</Impuesto>
+              <ClaveRegimen>01</ClaveRegimen>
+              <CalificacionOperacion>S1</CalificacionOperacion>
+              <TipoImpositivo>21.00</TipoImpositivo>
+              <BaseImponibleOimporteNoSujeto>8.26</BaseImponibleOimporteNoSujeto>
+              <CuotaRepercutida>1.74</CuotaRepercutida>
+            </DetalleDesglose>
+          </Desglose>
+          <CuotaTotal>1.74</CuotaTotal>
+          <ImporteTotal>10.00</ImporteTotal>
+          <Encadenamiento>
+            <PrimerRegistro>S</PrimerRegistro>
+          </Encadenamiento>
+          <SistemaInformatico>
+            <NombreRazon>SOFTCRAFTER S.L.</NombreRazon>
+            <NIF>B56803240</NIF>
+            <NombreSistemaInformatico>IntelliCore UPOS</NombreSistemaInformatico>
+            <IdSistemaInformatico>U1</IdSistemaInformatico>
+            <Version>V2.9.6</Version>
+            <NumeroInstalacion>s76ewn6k0o_B56803240_01_C01_dev</NumeroInstalacion>
+            <TipoUsoPosibleSoloVerifactu>N</TipoUsoPosibleSoloVerifactu>
+            <TipoUsoPosibleMultiOT>S</TipoUsoPosibleMultiOT>
+            <IndicadorMultiplesOT>S</IndicadorMultiplesOT>
+          </SistemaInformatico>
+          <FechaHoraHusoGenRegistro>2025-09-05T16:53:14+02:00</FechaHoraHusoGenRegistro>
+          <TipoHuella>01</TipoHuella>
+          <Huella>7C4A7FA8235408923072DED28843468289F14C06007A3AA19E11796928C2A47F</Huella>
+        </RegistroAlta>
+      </RegistroFactura>
+    </RegFactuSistemaFacturacion>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

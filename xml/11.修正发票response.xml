@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<env:Envelope
+        xmlns:env="http://schemas.xmlsoap.org/soap/envelope/">
+  <env:Header></env:Header>
+  <env:Body Id="Body">
+    <tikR:RespuestaRegFactuSistemaFacturacion
+            xmlns:tikR="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/RespuestaSuministro.xsd"
+            xmlns:tik="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+      <tikR:CSV>A-QF9FPYV24LCLKL</tikR:CSV>
+      <tikR:DatosPresentacion>
+        <tik:NIFPresentador>B56803240</tik:NIFPresentador>
+        <tik:TimestampPresentacion>2025-06-26T17:49:55+02:00</tik:TimestampPresentacion>
+      </tikR:DatosPresentacion>
+      <tikR:Cabecera>
+        <tik:ObligadoEmision>
+          <tik:NombreRazon>SOFTCRAFTER S.L.</tik:NombreRazon>
+          <tik:NIF>B56803240</tik:NIF>
+        </tik:ObligadoEmision>
+      </tikR:Cabecera>
+      <tikR:TiempoEsperaEnvio>60</tikR:TiempoEsperaEnvio>
+      <tikR:EstadoEnvio>ParcialmenteCorrecto</tikR:EstadoEnvio>
+      <tikR:RespuestaLinea>
+        <tikR:IDFactura>
+          <tik:IDEmisorFactura>B56803240</tik:IDEmisorFactura>
+          <tik:NumSerieFactura>FACT2024-009</tik:NumSerieFactura>
+          <tik:FechaExpedicionFactura>25-06-2025</tik:FechaExpedicionFactura>
+        </tikR:IDFactura>
+        <tikR:Operacion>
+          <tik:TipoOperacion>Alta</tik:TipoOperacion>
+          <tik:Subsanacion>S</tik:Subsanacion>
+        </tikR:Operacion>
+        <tikR:EstadoRegistro>AceptadoConErrores</tikR:EstadoRegistro>
+        <tikR:CodigoErrorRegistro>2004</tikR:CodigoErrorRegistro>
+        <tikR:DescripcionErrorRegistro>El valor del campo FechaHoraHusoGenRegistro debe ser la fecha actual del sistema de la AEAT, admitiéndose un margen de error de: 240 segundos.</tikR:DescripcionErrorRegistro>
+      </tikR:RespuestaLinea>
+    </tikR:RespuestaRegFactuSistemaFacturacion>
+  </env:Body>
+</env:Envelope>

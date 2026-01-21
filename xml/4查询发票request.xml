@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:con="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/ConsultaLR.xsd"
+                  xmlns:sum="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <con:ConsultaFactuSistemaFacturacion>
+      <con:Cabecera>
+        <sum:IDVersion>1.0</sum:IDVersion>
+        <sum:ObligadoEmision>
+          <sum:NombreRazon>SOFTCRAFTER S.L.</sum:NombreRazon>
+          <sum:NIF>B56803240</sum:NIF>
+        </sum:ObligadoEmision>
+      </con:Cabecera>
+      <con:FiltroConsulta>
+        <con:PeriodoImputacion>
+          <sum:Ejercicio>2025</sum:Ejercicio>
+          <sum:Periodo>06</sum:Periodo>
+        </con:PeriodoImputacion>
+        <con:NumSerieFactura>FACT2024-009</con:NumSerieFactura>
+      </con:FiltroConsulta>
+    </con:ConsultaFactuSistemaFacturacion>
+  </soapenv:Body>
+</soapenv:Envelope>

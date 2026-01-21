@@ -1,0 +1,44 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SOAP-ENV:Body>
+    <RegFactuSistemaFacturacion xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd">
+      <Cabecera>
+        <ObligadoEmision xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+          <NombreRazon>SOFTCRAFTER S.L.</NombreRazon>
+          <NIF>B56803240</NIF>
+        </ObligadoEmision>
+      </Cabecera>
+      <RegistroFactura>
+        <RegistroAnulacion xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+          <IDVersion>1.0</IDVersion>
+          <IDFactura>
+            <IDEmisorFacturaAnulada>B56803240</IDEmisorFacturaAnulada>
+            <NumSerieFacturaAnulada>FACT2024-010</NumSerieFacturaAnulada>
+            <FechaExpedicionFacturaAnulada>25-06-2025</FechaExpedicionFacturaAnulada>
+          </IDFactura>
+          <Encadenamiento>
+            <RegistroAnterior>
+              <IDEmisorFactura>B56803240</IDEmisorFactura>
+              <NumSerieFactura>FACT2024-011</NumSerieFactura>
+              <FechaExpedicionFactura>25-06-2025</FechaExpedicionFactura>
+              <Huella>F2CC09124833B90BEE17384C9E52710D4C16B77F52535CEF42EB3CDDE0201A55</Huella>
+            </RegistroAnterior>
+          </Encadenamiento>
+          <SistemaInformatico>
+            <NombreRazon>VERIFACTU JAVA CLIENT</NombreRazon>
+            <NIF>B12959755</NIF>
+            <NombreSistemaInformatico>VeriFactu-Java</NombreSistemaInformatico>
+            <IdSistemaInformatico>01</IdSistemaInformatico>
+            <Version>1.0.0</Version>
+            <NumeroInstalacion>01</NumeroInstalacion>
+            <TipoUsoPosibleSoloVerifactu>N</TipoUsoPosibleSoloVerifactu>
+            <TipoUsoPosibleMultiOT>S</TipoUsoPosibleMultiOT>
+            <IndicadorMultiplesOT>S</IndicadorMultiplesOT>
+          </SistemaInformatico>
+          <FechaHoraHusoGenRegistro>2025-06-26T15:05:48+02:00</FechaHoraHusoGenRegistro>
+          <TipoHuella>01</TipoHuella>
+          <Huella>A20CC5655C4E477539908F84C5472A2669086E81C41BA8FCAA3F29859D12E1DD</Huella>
+        </RegistroAnulacion>
+      </RegistroFactura>
+    </RegFactuSistemaFacturacion>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

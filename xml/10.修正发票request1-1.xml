@@ -1,0 +1,68 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SOAP-ENV:Body>
+    <RegFactuSistemaFacturacion xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd">
+      <Cabecera>
+        <ObligadoEmision xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+          <NombreRazon>SOFTCRAFTER S.L.</NombreRazon>
+          <NIF>B56803240</NIF>
+        </ObligadoEmision>
+      </Cabecera>
+      <RegistroFactura>
+        <RegistroAlta xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+          <IDVersion>1.0</IDVersion>
+          <IDFactura>
+            <IDEmisorFactura>B56803240</IDEmisorFactura>
+            <NumSerieFactura>FACT2024-009</NumSerieFactura>
+            <FechaExpedicionFactura>25-06-2025</FechaExpedicionFactura>
+          </IDFactura>
+          <NombreRazonEmisor>SOFTCRAFTER S.L.</NombreRazonEmisor>
+          <Subsanacion>S</Subsanacion>
+          <TipoFactura>F1</TipoFactura>
+          <FechaOperacion>25-06-2025</FechaOperacion>
+          <DescripcionOperacion>测试发票修正1</DescripcionOperacion>
+          <Destinatarios>
+            <IDDestinatario>
+              <NombreRazon>MIDIAMADRID</NombreRazon>
+              <NIF>B56803273</NIF>
+            </IDDestinatario>
+          </Destinatarios>
+          <Cupon>N</Cupon>
+          <Desglose>
+           <DetalleDesglose>
+             <Impuesto>01</Impuesto>
+             <ClaveRegimen>01</ClaveRegimen>
+             <CalificacionOperacion>S1</CalificacionOperacion>
+             <TipoImpositivo>21</TipoImpositivo>
+             <BaseImponibleOimporteNoSujeto>100.00</BaseImponibleOimporteNoSujeto>
+             <CuotaRepercutida>21.00</CuotaRepercutida>
+          </DetalleDesglose>
+         </Desglose>
+         <CuotaTotal>21.00</CuotaTotal>
+         <ImporteTotal>121.00</ImporteTotal>
+          <Encadenamiento>
+            <RegistroAnterior>
+              <IDEmisorFactura>B56803240</IDEmisorFactura>
+              <NumSerieFactura>FACT2024-010</NumSerieFactura>
+              <FechaExpedicionFactura>25-06-2025</FechaExpedicionFactura>
+              <Huella>A20CC5655C4E477539908F84C5472A2669086E81C41BA8FCAA3F29859D12E1DD</Huella>
+            </RegistroAnterior>
+          </Encadenamiento>
+          <SistemaInformatico>
+            <NombreRazon>VERIFACTU JAVA CLIENT</NombreRazon>
+            <NIF>B12959755</NIF>
+            <NombreSistemaInformatico>VeriFactu-Java</NombreSistemaInformatico>
+            <IdSistemaInformatico>01</IdSistemaInformatico>
+            <Version>1.0.0</Version>
+            <NumeroInstalacion>01</NumeroInstalacion>
+            <TipoUsoPosibleSoloVerifactu>N</TipoUsoPosibleSoloVerifactu>
+            <TipoUsoPosibleMultiOT>S</TipoUsoPosibleMultiOT>
+            <IndicadorMultiplesOT>S</IndicadorMultiplesOT>
+          </SistemaInformatico>
+          <FechaHoraHusoGenRegistro>2025-06-26T17:45:02+02:00</FechaHoraHusoGenRegistro>
+          <TipoHuella>01</TipoHuella>
+          <Huella>EE8F97B0F3C1057CABB8A6E0A448BB89C5B838B0C008738E6BF5452F3B17F77B</Huella>
+        </RegistroAlta>
+      </RegistroFactura>
+    </RegFactuSistemaFacturacion>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

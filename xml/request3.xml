@@ -1,0 +1,123 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"
+                  xmlns:sum="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd"
+                  xmlns:sum1="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd"
+                  xmlns:xd="http://www.w3.org/2000/09/xmldsig#">
+  <!-- soapenv:Envelope：SOAP信封，是SOAP消息的顶级元素，用于封装整个消息内容，包含Header和Body部分。 -->
+  <!-- xmlns:soapenv等：定义命名空间，用于避免XML文档中元素和属性命名冲突，不同命名空间对应不同的功能模块或数据类型。 -->
+  <soapenv:Header/>
+  <!-- soapenv:Header：SOAP消息头，可包含认证信息、事务处理信息等，但在此处为空。 -->
+  <soapenv:Body>
+    <!-- soapenv:Body：SOAP消息体，存放实际的业务数据，即发票注册相关信息。 -->
+    <sum:RegFactuSistemaFacturacion>
+      <!-- sum:RegFactuSistemaFacturacion：表示发票注册系统相关的操作，是包含发票注册信息的顶级元素。 -->
+      <sum:Cabecera>
+        <!-- sum:Cabecera：发票头部分，包含与发票整体相关的信息。 -->
+        <sum1:ObligadoEmision>
+          <!-- sum1:ObligadoEmision：负责开具发票的主体信息。 -->
+          <sum1:NombreRazon>SOFTCRAFTER S.L.</sum1:NombreRazon>
+          <!-- sum1:NombreRazon：开具发票方的名称或公司名。 -->
+          <sum1:NIF>B56803240</sum1:NIF>
+          <!-- sum1:NIF：开具发票方的税务识别号（西班牙的NIF格式） 。 -->
+        </sum1:ObligadoEmision>
+      </sum:Cabecera>
+      <sum:RegistroFactura>
+        <!-- sum:RegistroFactura：发票注册记录，包含具体的发票注册详情。 -->
+        <sum1:RegistroAlta>
+          <!-- sum1:RegistroAlta：发票注册操作的具体类型，表示新增注册（区别于修改、取消等操作）。 -->
+          <sum1:IDVersion>1.0</sum1:IDVersion>
+          <!-- sum1:IDVersion：信息模式或结构的版本号，用于标识发票信息遵循的格式版本。 -->
+          <sum1:IDFactura>
+            <!-- sum1:IDFactura：发票的唯一标识组合，由多个字段构成，确保发票的唯一性。 -->
+            <sum1:IDEmisorFactura>B5680327367675656</sum1:IDEmisorFactura>
+            <!-- sum1:IDEmisorFactura：发票开具方的标识（结合其他字段确定唯一发票）。 -->
+            <sum1:NumSerieFactura>FACT2024-001</sum1:NumSerieFactura>
+            <!-- sum1:NumSerieFactura：发票的系列号和发票号。 -->
+            <sum1:FechaExpedicionFactura>25-06-2025</sum1:FechaExpedicionFactura>
+            <!-- sum1:FechaExpedicionFactura：发票的开具日期。 -->
+          </sum1:IDFactura>
+          <sum1:NombreRazonEmisor>SOFTCRAFTER S.L.</sum1:NombreRazonEmisor>
+          <!-- sum1:NombreRazonEmisor：发票开具方的名称（与ObligadoEmision中的名称相互印证 ）。 -->
+          <sum1:TipoFactura>F1</sum1:TipoFactura>
+          <!-- sum1:TipoFactura：发票类型代码，不同代码代表不同类型的发票（如普通发票、增值税专用发票等 ）。 -->
+          <sum1:DescripcionOperacion>Description</sum1:DescripcionOperacion>
+          <!-- sum1:DescripcionOperacion：对发票所涉及业务操作的描述。 -->
+          <sum1:Destinatarios>
+            <!-- sum1:Destinatarios：发票接收方信息集合。 -->
+            <sum1:IDDestinatario>
+              <!-- sum1:IDDestinatario：发票接收方的标识（可能是税务识别号或其他唯一标识 ）。 -->
+              <sum1:NombreRazon>MIDIA STORES MADRID S.L.</sum1:NombreRazon>
+              <!-- sum1:NombreRazon：发票接收方的名称或公司名。 -->
+              <sum1:NIF>B56803273</sum1:NIF>
+              <!-- sum1:NIF：发票接收方的税务识别号。 -->
+            </sum1:IDDestinatario>
+          </sum1:Destinatarios>
+          <sum1:Desglose>
+            <!-- sum1:Desglose：发票的税费拆分明细部分，用于详细记录不同税种的相关信息。 -->
+            <sum1:DetalleDesglose>
+              <!-- sum1:DetalleDesglose：每个税费明细项的具体内容。 -->
+              <sum1:ClaveRegimen>01</sum1:ClaveRegimen>
+              <!-- sum1:ClaveRegimen：税种代码，用于标识不同的税收制度或税种。 -->
+              <sum1:CalificacionOperacion>S1</sum1:CalificacionOperacion>
+              <!-- sum1:CalificacionOperacion：业务操作的分类或评级代码，可能用于区分不同的业务场景或交易性质。 -->
+              <sum1:TipoImpositivo>4</sum1:TipoImpositivo>
+              <!-- sum1:TipoImpositivo：税率类型代码，对应不同的税率标准。 -->
+              <sum1:BaseImponibleOimporteNoSujeto>10</sum1:BaseImponibleOimporteNoSujeto>
+              <!-- sum1:BaseImponibleOimporteNoSujeto：税基或非应税金额，是计算税费的基础金额。 -->
+              <sum1:CuotaRepercutida>0.4</sum1:CuotaRepercutida>
+              <!-- sum1:CuotaRepercutida：分摊税额或已缴纳税额，是根据税基和税率计算得出的税额部分。 -->
+            </sum1:DetalleDesglose>
+            <sum1:DetalleDesglose>
+              <!-- 可包含多个税费明细项，用于记录多种税种或不同业务部分的税费情况。 -->
+              <sum1:ClaveRegimen>01</sum1:ClaveRegimen>
+              <sum1:CalificacionOperacion>S1</sum1:CalificacionOperacion>
+              <sum1:TipoImpositivo>21</sum1:TipoImpositivo>
+              <sum1:BaseImponibleOimporteNoSujeto>100</sum1:BaseImponibleOimporteNoSujeto>
+              <sum1:CuotaRepercutida>21</sum1:CuotaRepercutida>
+            </sum1:DetalleDesglose>
+          </sum1:Desglose>
+          <sum1:CuotaTotal>21.4</sum1:CuotaTotal>
+          <!-- sum1:CuotaTotal：发票的总税额，是所有税费明细项的税额总和。 -->
+          <sum1:ImporteTotal>131.4</sum1:ImporteTotal>
+          <!-- sum1:ImporteTotal：发票的总金额，包含税基和总税额。 -->
+          <sum1:Encadenamiento>
+            <!-- sum1:Encadenamiento：发票的关联部分，用于记录与前序发票的链接关系，形成发票链。 -->
+            <sum1:RegistroAnterior>
+              <!-- sum1:RegistroAnterior：前序发票的注册信息。 -->
+              <sum1:NumSerieFactura>44</sum1:NumSerieFactura>
+              <!-- sum1:NumSerieFactura：前序发票的系列号和发票号。 -->
+              <sum1:IDEmisorFactura>AAAA</sum1:IDEmisorFactura>
+              <!-- sum1:IDEmisorFactura：前序发票开具方的标识。 -->
+            </sum1:RegistroAnterior>
+          </sum1:Encadenamiento>
+          <sum1:SistemaInformatico>
+            <!-- sum1:SistemaInformatico：开具发票所使用的计算机系统信息。 -->
+            <sum1:NombreRazon>SSSS</sum1:NombreRazon>
+            <!-- sum1:NombreRazon：计算机系统所属方的名称。 -->
+            <sum1:NIF>NNNN</sum1:NIF>
+            <!-- sum1:NIF：计算机系统所属方的税务识别号。 -->
+            <sum1:NombreSistemaInformatico>ComputerSystemName</sum1:NombreSistemaInformatico>
+            <!-- sum1:NombreSistemaInformatico：计算机系统的名称。 -->
+            <sum1:IdSistemaInformatico>77</sum1:IdSistemaInformatico>
+            <!-- sum1:IdSistemaInformatico：计算机系统的唯一标识符。 -->
+            <sum1:Version>1.0.03</sum1:Version>
+            <!-- sum1:Version：计算机系统的版本号。 -->
+          </sum1:SistemaInformatico>
+          <sum1:FechaHoraHusoGenRegistro>2024-09-13T19:20:30+01:00</sum1:FechaHoraHusoGenRegistro>
+          <!-- sum1:FechaHoraHusoGenRegistro：发票注册生成的日期和时间，包含时区信息。 -->
+          <sum1:TipoHuella>01</sum1:TipoHuella>
+          <!-- sum1:TipoHuella：发票指纹类型代码，用于标识发票指纹的生成方式或格式。 -->
+          <sum1:TipoUsoPosibleMultiOT>S</sum1:TipoUsoPosibleMultiOT>
+          <!-- sum1:TipoUsoPosibleMultiOT：表示该发票是否可能用于多个业务操作的标识，“S”表示是。 -->
+          <sum1:NumeroInstalacion>383</sum1:NumeroInstalacion>
+          <!-- sum1:NumeroInstalacion：安装编号，可能用于标识发票生成系统的安装实例或环境。 -->
+          <sum1:TipoUsoPosibleSoloVerifactu>N</sum1:TipoUsoPosibleSoloVerifactu>
+          <!-- sum1:TipoUsoPosibleSoloVerifactu：表示该发票是否仅用于特定验证（VERI*FACTU）的标识，“N”表示否。 -->
+          <sum1:IndicadorMultiplesOT>S</sum1:IndicadorMultiplesOT>
+          <!-- sum1:IndicadorMultiplesOT：表示存在多个业务操作的标识，“S”表示是。 -->
+          <sum1:Huella>Footprint</sum1:Huella>
+          <!-- sum1:Huella：发票的指纹信息，用于发票的唯一性验证和防篡改。 -->
+        </sum1:RegistroAlta>
+      </sum:RegistroFactura>
+    </sum:RegFactuSistemaFacturacion>
+  </soapenv:Body>
+</soapenv:Envelope>

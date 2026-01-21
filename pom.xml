@@ -1,0 +1,170 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.searly.taxcontrol</groupId>
+  <artifactId>tax-dack</artifactId>
+  <version>1.0.3</version>
+  <packaging>jar</packaging>
+
+  <name>tax-dack</name>
+  <url>http://maven.apache.org</url>
+
+
+  <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <scm>
+    <connection>scm:git:https://gitlab.s-early.com/lean/tax-dack.git</connection>
+    <developerConnection>scm:git:https://gitlab.s-early.com/lean/tax-dack.git</developerConnection>
+    <url>https://gitlab.s-early.com/lean/tax-dack.git</url>
+    <tag>release-1.31.x</tag>
+  </scm>
+
+  <distributionManagement>
+    <repository>
+      <id>releases</id>
+      <url>http://hdxmservice.asuscomm.com:8036/repository/maven-releases</url>
+    </repository>
+    <snapshotRepository>
+      <id>snapshots</id>
+      <url>http://hdxmservice.asuscomm.com:8036/repository/maven-snapshots</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <repositories>
+    <repository>
+      <id>heading</id>
+      <name>Heading Repository</name>
+      <url>http://hdxmservice.asuscomm.com:8036/repository/maven-snapshots</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <layout>default</layout>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <!-- XML处理 -->
+    <dependency>
+      <groupId>javax.xml.bind</groupId>
+      <artifactId>jaxb-api</artifactId>
+      <version>2.3.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jaxb</groupId>
+      <artifactId>jaxb-runtime</artifactId>
+      <version>2.3.3</version>
+    </dependency>
+
+      <dependency>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-text</artifactId>
+          <version>1.11.0</version>
+      </dependency>
+
+      <dependency>
+          <groupId>commons-io</groupId>
+          <artifactId>commons-io</artifactId>
+          <version>2.15.1</version>
+      </dependency>
+    <!-- HTTP客户端 -->
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.13</version>
+    </dependency>
+
+    <!-- 仅引入 spring-web（包含 RestTemplate） -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-web</artifactId>
+      <version>5.2.15.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+      <version>5.2.15.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.11.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.santuario</groupId>
+      <artifactId>xmlsec</artifactId>
+      <version>3.0.3</version>
+    </dependency>
+
+      <dependency>
+          <groupId>org.bouncycastle</groupId>
+          <artifactId>bcprov-jdk15on</artifactId>
+          <version>1.70</version>
+      </dependency>
+
+      <dependency>
+          <groupId>org.bouncycastle</groupId>
+          <artifactId>bcpkix-jdk15on</artifactId>
+          <version>1.70</version>
+      </dependency>
+
+      <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpmime</artifactId>
+          <version>4.5.13</version>
+      </dependency>
+    <dependency>
+      <groupId>com.google.zxing</groupId>
+      <artifactId>core</artifactId>
+      <version>3.4.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.zxing</groupId>
+      <artifactId>javase</artifactId>
+      <version>3.4.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.searly.taxcontrol.verifactu.demo.Demo</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.4</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

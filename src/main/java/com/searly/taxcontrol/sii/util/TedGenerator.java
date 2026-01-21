@@ -1,0 +1,213 @@
+package com.searly.taxcontrol.sii.util;
+
+import org.apache.xml.security.Init;
+import org.apache.xml.security.c14n.Canonicalizer;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
+
+public class TedGenerator {
+
+    /**
+     * 在 Document 中插入 TED
+     *
+     * @param doc     已生成的 EnvioBOLETA Document
+     * @param cafFile CAF.xml 文件路径
+     */
+    public static void insertTed(Document doc, InputStream cafFile) throws Exception {
+        // 加载 CAF
+        Document cafDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(cafFile);
+        Node cafNode = doc.importNode(cafDoc.getElementsByTagName("CAF").item(0), true);
+
+        // === 从 CAF 解析私钥 ===
+        // 检查 RSASK 是否存在
+        NodeList rsaskNodes = cafDoc.getElementsByTagName("RSASK");
+        PrivateKey privateKey;
+        if (rsaskNodes.getLength() > 0) {
+            String privateKeyPem = rsaskNodes.item(0).getTextContent();
+            privateKey = loadPrivateKeyFromPem(privateKeyPem);
+        } else {
+            // 使用公司证书的私钥（需要从外部传入）
+            throw new IllegalArgumentException("CAF文件中缺少RSASK，需要使用公司证书私钥");
+        }
+
+        // 获取 Documento
+        Element documento = (Element) doc.getElementsByTagName("Documento").item(0);
+
+        // 从 documento 提取字段
+        String RE = getText(documento, "RUTEmisor");
+        String TD = getText(documento, "TipoDTE");
+        String F = getText(documento, "Folio");
+        String FE = getText(documento, "FchEmis");
+        String RR = getText(documento, "RUTRecep");
+        String RSR = getText(documento, "RznSocRecep");
+        String MNT = getText(documento, "MntTotal");
+        
+        // IT1 应该从第一个 Detalle 节点获取
+        NodeList detalleList = documento.getElementsByTagName("Detalle");
+        if (detalleList.getLength() == 0) {
+            throw new IllegalArgumentException("发票必须至少包含一个商品项");
+        }
+        Element firstDetalle = (Element) detalleList.item(0);
+        String IT1 = getText(firstDetalle, "NmbItem");
+        
+        String ts = getText(documento, "TmstFirma");
+
+        // 创建 TED
+        Document tedDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+        Element TED = tedDoc.createElement("TED");
+        TED.setAttribute("version", "1.0");
+
+        Element DD = tedDoc.createElement("DD");
+        appendText(tedDoc, DD, "RE", RE);
+        appendText(tedDoc, DD, "TD", TD);
+        appendText(tedDoc, DD, "F", F);
+        appendText(tedDoc, DD, "FE", FE);
+        appendText(tedDoc, DD, "RR", RR);
+        appendText(tedDoc, DD, "RSR", RSR);
+        appendText(tedDoc, DD, "MNT", MNT);
+        appendText(tedDoc, DD, "IT1", IT1);
+
+        // 添加 CAF
+        DD.appendChild(tedDoc.importNode(cafNode, true));
+
+        // 添加 TSTED
+        appendText(tedDoc, DD, "TSTED", ts);
+
+        TED.appendChild(DD);
+
+        // 签名 DD 节点
+        byte[] ddBytes = canonicalizeInclusive(DD);
+        Signature sig = Signature.getInstance("SHA1withRSA");
+        sig.initSign(privateKey);
+        sig.update(ddBytes);
+        String frmtBase64 = Base64.getEncoder().encodeToString(sig.sign());
+
+        Element FRMT = tedDoc.createElement("FRMT");
+        FRMT.setAttribute("algoritmo", "SHA1withRSA");
+        FRMT.setTextContent(frmtBase64);
+        TED.appendChild(FRMT);
+
+        // 插入到 Detalle 后、TmstFirma 前
+        Node tmstFirmaNode = documento.getElementsByTagName("TmstFirma").item(0);
+        documento.insertBefore(doc.importNode(TED, true), tmstFirmaNode);
+    }
+
+    // 从 PEM 私钥解析
+    private static PrivateKey loadPrivateKeyFromPem(String pem) throws Exception {
+        String cleaned = pem.replace("\r", "").replace("\n", "\n").trim();
+        if (cleaned.contains("BEGIN RSA PRIVATE KEY")) {
+            // PKCS#1 -> 包一层 PKCS#8
+            byte[] pkcs1 = base64Between(pem, "BEGIN RSA PRIVATE KEY", "END RSA PRIVATE KEY");
+            byte[] pkcs8 = wrapPkcs1ToPkcs8(pkcs1);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePrivate(new PKCS8EncodedKeySpec(pkcs8));
+        } else if (cleaned.contains("BEGIN PRIVATE KEY")) {
+            byte[] pkcs8 = base64Between(pem, "BEGIN PRIVATE KEY", "END PRIVATE KEY");
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return kf.generatePrivate(new PKCS8EncodedKeySpec(pkcs8));
+        } else {
+            throw new IllegalArgumentException("不识别的私钥 PEM 格式");
+        }
+    }
+
+    private static byte[] base64Between(String pem, String begin, String end) {
+        String s = pem.replace("\r", "");
+        int i1 = s.indexOf("-----" + begin + "-----");
+        int i2 = s.indexOf("-----" + end + "-----");
+        if (i1 < 0 || i2 < 0) throw new IllegalArgumentException("PEM 边界未找到: " + begin + "/" + end);
+        String base64 = s.substring(i1 + ("-----" + begin + "-----").length(), i2).replace("\n", "").trim();
+        return Base64.getDecoder().decode(base64);
+    }
+
+    /**
+     * 把 PKCS#1 RSA 私钥包装成 PKCS#8（RSA OID 1.2.840.113549.1.1.1）
+     */
+    private static byte[] wrapPkcs1ToPkcs8(byte[] pkcs1) {
+        // 组装一个最小的 PKCS#8：Sequence(algId, OCTET STRING(pkcs1))
+        // ASN.1 粗暴拼装（可用 BouncyCastle 更省心，这里为避免额外依赖）
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            // 覆盖长度时用 DER 简单编码
+            // SEQ
+            out.write(0x30);
+            ByteArrayOutputStream body = new ByteArrayOutputStream();
+            // version: INTEGER 0
+            body.write(new byte[]{0x02, 0x01, 0x00});
+            // algId: SEQ { OID rsaEncryption, NULL }
+            ByteArrayOutputStream alg = new ByteArrayOutputStream();
+            alg.write(0x30);
+            ByteArrayOutputStream algBody = new ByteArrayOutputStream();
+            // OID 1.2.840.113549.1.1.1
+            algBody.write(new byte[]{0x06, 0x09,
+                    0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7, 0x0D, 0x01, 0x01, 0x01});
+            // NULL
+            algBody.write(new byte[]{0x05, 0x00});
+            writeLen(alg, algBody.size());
+            alg.write(algBody.toByteArray());
+            body.write(alg.toByteArray());
+            // OCTET STRING (pkcs1)
+            body.write(0x04);
+            writeLen(body, pkcs1.length);
+            body.write(pkcs1);
+            // 写总长度
+            writeLen(out, body.size());
+            out.write(body.toByteArray());
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void writeLen(OutputStream os, int len) throws IOException {
+        if (len < 128) {
+            os.write(len);
+        } else if (len < 256) {
+            os.write(0x81);
+            os.write(len);
+        } else if (len < 65536) {
+            os.write(0x82);
+            os.write((len >> 8) & 0xFF);
+            os.write(len & 0xFF);
+        } else {
+            throw new IllegalArgumentException("长度过大");
+        }
+    }
+
+    // 获取标签文本
+    private static String getText(Element parent, String tag) {
+        NodeList nodes = parent.getElementsByTagName(tag);
+        if (nodes.getLength() == 0) {
+            throw new IllegalArgumentException("缺少必需的TED字段: " + tag);
+        }
+        return nodes.item(0).getTextContent();
+    }
+
+    // 添加子元素
+    private static void appendText(Document doc, Element parent, String tag, String value) {
+        Element e = doc.createElement(tag);
+        e.setTextContent(value);
+        parent.appendChild(e);
+    }
+
+    // Inclusive C14N
+    private static byte[] canonicalizeInclusive(Node node) throws Exception {
+        Init.init();
+        Canonicalizer canon = Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        canon.canonicalizeSubtree(node, baos);
+        return baos.toByteArray();
+    }
+}

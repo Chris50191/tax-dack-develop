@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<SOAP-ENV:Envelope  xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
+    <SOAP-ENV:Body>
+        <RegFactuSistemaFacturacion xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd">
+            <Cabecera xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+                <Titular>
+                    <NIF>B12345678</NIF>
+                    <NombreRazon>EMPRESA EJEMPLO S.L.</NombreRazon>
+                </Titular>
+            </Cabecera>
+            <RegistroFactura xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd">
+                <RegistroAlta>
+                    <IDVersion>1.0</IDVersion>
+                    <IDFacturaAlta>
+                        <IDEmisorFactura>B12345678</IDEmisorFactura>
+                        <NumSerieFactura>FACT2024-001</NumSerieFactura>
+                        <FechaExpedicionFactura>2025-06-25</FechaExpedicionFactura>
+                    </IDFacturaAlta>
+                    <NombreRazonEmisor>EMPRESA EJEMPLO S.L.</NombreRazonEmisor>
+                    <TipoFactura>F1</TipoFactura>
+                    <Destinatarios>
+                        <NIF>12345678Z</NIF>
+                        <NombreRazon>CLIENTE EJEMPLO</NombreRazon>
+                    </Destinatarios>
+                    <Desglose>
+                        <ClaveRegimen>01</ClaveRegimen>
+                        <BaseImponible>1000.00</BaseImponible>
+                        <TipoImpositivo>21.00</TipoImpositivo>
+                        <Cuota>210.00</Cuota>
+                    </Desglose>
+                    <Desglose>
+                        <ClaveRegimen>01</ClaveRegimen>
+                        <BaseImponible>500.00</BaseImponible>
+                        <TipoImpositivo>10.00</TipoImpositivo>
+                        <Cuota>50.00</Cuota>
+                    </Desglose>
+                    <SistemaInformatico>
+                        <NIF>B12959755</NIF>
+                        <NombreRazon>VERIFACTU JAVA CLIENT</NombreRazon>
+                        <NombreSistemaInformatico>VeriFactu-Java</NombreSistemaInformatico>
+                        <IdSistemaInformatico>01</IdSistemaInformatico>
+                        <Version>1.0.0</Version>
+                        <NumeroInstalacion>01</NumeroInstalacion>
+                        <TipoUsoPosibleSoloVerifactu>S</TipoUsoPosibleSoloVerifactu>
+                        <TipoUsoPosibleMultiOT>S</TipoUsoPosibleMultiOT>
+                        <IndicadorMultiplesOT>S</IndicadorMultiplesOT>
+                    </SistemaInformatico>
+                    <ImporteTotal>1760.00</ImporteTotal>
+                    <CuotaTotal>260.00</CuotaTotal>
+                    <TipoHuella>SHA-256</TipoHuella>
+                </RegistroAlta>
+            </RegistroFactura>
+        </RegFactuSistemaFacturacion>
+    </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

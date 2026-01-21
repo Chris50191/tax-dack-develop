@@ -1,0 +1,65 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <SOAP-ENV:Body>
+    <RegFactuSistemaFacturacion xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroLR.xsd">
+      <Cabecera>
+        <ObligadoEmision xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+          <NombreRazon>SOFTCRAFTER S.L.</NombreRazon>
+          <NIF>B56803240</NIF>
+        </ObligadoEmision>
+      </Cabecera>
+      <RegistroFactura>
+        <RegistroAlta xmlns="https://www2.agenciatributaria.gob.es/static_files/common/internet/dep/aplicaciones/es/aeat/tike/cont/ws/SuministroInformacion.xsd">
+          <IDVersion>1.0</IDVersion>
+          <IDFactura>
+            <IDEmisorFactura>B56803240</IDEmisorFactura>
+            <NumSerieFactura>FACT2024-009</NumSerieFactura>
+            <FechaExpedicionFactura>25-06-2025</FechaExpedicionFactura>
+          </IDFactura>
+          <NombreRazonEmisor>SOFTCRAFTER S.L.</NombreRazonEmisor>
+          <Subsanacion>N</Subsanacion>
+          <RechazoPrevio>N</RechazoPrevio>
+          <TipoFactura>F1</TipoFactura>
+          <FechaOperacion>25-06-2025</FechaOperacion>
+          <DescripcionOperacion>xxxxxxxxxxxxxxxxxxxxxxxxx</DescripcionOperacion>
+          <Macrodato>N</Macrodato>
+          <Destinatarios>
+            <IDDestinatario>
+              <NombreRazon>MIDIAMADRID</NombreRazon>
+              <NIF>B56803273</NIF>
+            </IDDestinatario>
+          </Destinatarios>
+          <Cupon>N</Cupon>
+          <Desglose>
+           <DetalleDesglose>
+             <Impuesto>01</Impuesto>
+             <ClaveRegimen>01</ClaveRegimen>
+             <CalificacionOperacion>S1</CalificacionOperacion>
+             <TipoImpositivo>21</TipoImpositivo>
+             <BaseImponibleOimporteNoSujeto>100.00</BaseImponibleOimporteNoSujeto>
+             <CuotaRepercutida>21.00</CuotaRepercutida>
+          </DetalleDesglose>
+         </Desglose>
+         <CuotaTotal>21.00</CuotaTotal>
+         <ImporteTotal>121.00</ImporteTotal>
+          <Encadenamiento>
+            <PrimerRegistro>S</PrimerRegistro>
+          </Encadenamiento>
+          <SistemaInformatico>
+            <NombreRazon>VERIFACTU JAVA CLIENT</NombreRazon>
+            <NIF>B12959755</NIF>
+            <NombreSistemaInformatico>VeriFactu-Java</NombreSistemaInformatico>
+            <IdSistemaInformatico>01</IdSistemaInformatico>
+            <Version>1.0.0</Version>
+            <NumeroInstalacion>01</NumeroInstalacion>
+            <TipoUsoPosibleSoloVerifactu>N</TipoUsoPosibleSoloVerifactu>
+            <TipoUsoPosibleMultiOT>S</TipoUsoPosibleMultiOT>
+            <IndicadorMultiplesOT>S</IndicadorMultiplesOT>
+          </SistemaInformatico>
+          <FechaHoraHusoGenRegistro>2025-06-26T08:07:52+02:00</FechaHoraHusoGenRegistro>
+          <TipoHuella>01</TipoHuella>
+          <Huella>12F04C52148EF12EF5D08A76C8C783FDF4B8E1D150D20A5E227439B4FA30615C</Huella>
+        </RegistroAlta>
+      </RegistroFactura>
+    </RegFactuSistemaFacturacion>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
