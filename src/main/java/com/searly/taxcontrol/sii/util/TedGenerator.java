@@ -4,6 +4,7 @@ import org.apache.xml.security.Init;
 import org.apache.xml.security.c14n.Canonicalizer;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -100,7 +101,7 @@ public class TedGenerator {
         Node tmstFirmaNode = documento.getElementsByTagName("TmstFirma").item(0);
         documento.insertBefore(TED, tmstFirmaNode);
 
-        byte[] ddBytes = canonicalizeInclusiveIso88591Bytes(DD);
+        byte[] ddBytes = canonicalizeForFrmt(DD);
         Signature sig = Signature.getInstance("SHA1withRSA");
         sig.initSign(privateKey);
         sig.update(ddBytes);
@@ -119,13 +120,97 @@ public class TedGenerator {
         return v;
     }
 
-    private static byte[] canonicalizeInclusiveIso88591Bytes(Element el) throws Exception {
-        byte[] utf8 = canonicalizeInclusive(el);
-        // Apache xmlsec 的 C14N 输出为 UTF-8 bytes。
-        // 但 DTE 文档声明为 ISO-8859-1，SII 的 timbre 验证实现可能按文档编码取字节。
-        // 为避免字节不一致，这里将 C14N 结果按 UTF-8 解码后，再以 ISO-8859-1 编码为签名输入。
+    private static byte[] canonicalizeForFrmt(Element el) throws Exception {
+        // A/B 对照：允许切换 C14N 算法与签名字节编码，以定位 SII 的 timbre 验证口径。
+        String mode = System.getProperty("ted.frmt.mode", "c14n");
+        String alg = System.getProperty("ted.frmt.c14nAlg", Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
+        String bytesEncoding = System.getProperty("ted.frmt.bytesEncoding", mode.equalsIgnoreCase("template") ? "ISO-8859-1" : "UTF-8");
+
+        if (mode.equalsIgnoreCase("template")) {
+            String xml = toCompactXml(el);
+            if (bytesEncoding.equalsIgnoreCase("ISO-8859-1") || bytesEncoding.equalsIgnoreCase("ISO8859-1")) {
+                return xml.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+            }
+            return xml.getBytes(java.nio.charset.Charset.forName(bytesEncoding));
+        }
+
+        Init.init();
+        Canonicalizer canon = Canonicalizer.getInstance(alg);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        canon.canonicalizeSubtree(el, baos);
+        byte[] utf8 = baos.toByteArray();
+
+        if (bytesEncoding == null || bytesEncoding.trim().isEmpty() || bytesEncoding.equalsIgnoreCase("UTF-8")) {
+            return utf8;
+        }
+
+        // 非 UTF-8 时，将 C14N 的 UTF-8 bytes 视为文本，转为指定编码的 bytes 作为签名输入。
         String s = new String(utf8, java.nio.charset.StandardCharsets.UTF_8);
-        return s.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        if (bytesEncoding.equalsIgnoreCase("ISO-8859-1") || bytesEncoding.equalsIgnoreCase("ISO8859-1")) {
+            return s.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+        }
+        return s.getBytes(java.nio.charset.Charset.forName(bytesEncoding));
+    }
+
+    private static String toCompactXml(Element el) {
+        StringBuilder sb = new StringBuilder();
+        appendElementCompact(sb, el);
+        return sb.toString();
+    }
+
+    private static void appendElementCompact(StringBuilder sb, Element el) {
+        String tag = el.getLocalName() != null ? el.getLocalName() : el.getNodeName();
+        sb.append('<').append(tag);
+
+        NamedNodeMap attrs = el.getAttributes();
+        if (attrs != null) {
+            for (int i = 0; i < attrs.getLength(); i++) {
+                Node a = attrs.item(i);
+                if (a == null) continue;
+                String name = a.getNodeName();
+                // template 模式下避免输出 xmlns 相关属性（最终 DTE 已有默认命名空间）
+                if (name != null && (name.equals("xmlns") || name.startsWith("xmlns:"))) {
+                    continue;
+                }
+                sb.append(' ').append(name).append("=\"").append(escapeAttr(a.getNodeValue())).append("\"");
+            }
+        }
+
+        sb.append('>');
+
+        NodeList children = el.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node c = children.item(i);
+            if (c == null) continue;
+            if (c.getNodeType() == Node.ELEMENT_NODE) {
+                appendElementCompact(sb, (Element) c);
+                continue;
+            }
+            if (c.getNodeType() == Node.TEXT_NODE) {
+                String v = c.getNodeValue();
+                if (v == null) continue;
+                // 忽略纯空白（CAF 文件中常见缩进/换行）
+                if (v.trim().isEmpty()) continue;
+                sb.append(escapeText(v.trim()));
+            }
+        }
+
+        sb.append("</").append(tag).append('>');
+    }
+
+    private static String escapeAttr(String v) {
+        if (v == null) return "";
+        return v.replace("&", "&amp;")
+                .replace("\"", "&quot;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+    }
+
+    private static String escapeText(String v) {
+        if (v == null) return "";
+        return v.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
     }
 
     private static Node importElementIntoNamespace(Document targetDoc, Element src, String ns) {
@@ -197,7 +282,7 @@ public class TedGenerator {
             throw new IllegalStateException("TED 中缺少 FRMT 节点");
         }
 
-        byte[] ddBytes = canonicalizeInclusiveIso88591Bytes(dd);
+        byte[] ddBytes = canonicalizeForFrmt(dd);
         byte[] signature = Base64.getDecoder().decode(frmt.getTextContent().trim());
 
         Signature sig = Signature.getInstance("SHA1withRSA");
@@ -235,7 +320,7 @@ public class TedGenerator {
             throw new IllegalStateException("TED 中缺少 FRMT 节点，无法重算 TED FRMT");
         }
 
-        byte[] ddBytes = canonicalizeInclusiveIso88591Bytes(dd);
+        byte[] ddBytes = canonicalizeForFrmt(dd);
         Signature sig = Signature.getInstance("SHA1withRSA");
         sig.initSign(privateKey);
         sig.update(ddBytes);
