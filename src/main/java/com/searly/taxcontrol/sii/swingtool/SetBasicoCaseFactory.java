@@ -73,6 +73,13 @@ public class SetBasicoCaseFactory {
 
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("America/Santiago"));
         String nowDate = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String overrideFchEmis = System.getProperty("sii.fchEmis");
+        if (overrideFchEmis != null) {
+            overrideFchEmis = overrideFchEmis.trim();
+            if (overrideFchEmis.matches("\\d{4}-\\d{2}-\\d{2}")) {
+                nowDate = overrideFchEmis;
+            }
+        }
         String currentTime = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
 
         data.setTipoDTE(39);

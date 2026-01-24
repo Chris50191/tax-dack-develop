@@ -1,6 +1,7 @@
 package com.searly.taxcontrol.sii.util;
 
 import com.searly.taxcontrol.sii.model.common.InvoiceData;
+import com.searly.taxcontrol.sii.swingtool.ConsumoFoliosGenerator;
 import com.searly.taxcontrol.sii.swingtool.SetBasicoCaseFactory;
 import com.searly.taxcontrol.sii.swingtool.SiiToolProperties;
 
@@ -11,6 +12,9 @@ import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class FiveCasesGenerateOnly {
     private static final int FOLIO_START = 1000;
@@ -69,6 +73,22 @@ public class FiveCasesGenerateOnly {
                 cfg.aliasSetDte
         );
 
+        int secEnvio = resolveSecEnvioForDate(invoiceDataList.get(0).getFchEmis());
+
+        String rcofXml = ConsumoFoliosGenerator.generateAndSign(cfg, invoiceDataList, secEnvio, ks, cfg.certificatePassword);
+        Path outRcof = Path.of("output").resolve("RVD_RCOF_" + invoiceDataList.get(0).getFchEmis() + "_SEC" + secEnvio + ".xml");
+        if (!Files.exists(outRcof.getParent())) {
+            Files.createDirectories(outRcof.getParent());
+        }
+        Files.writeString(outRcof, rcofXml, StandardCharsets.ISO_8859_1);
+        System.out.println("RVD/RCOF 生成(匹配 5-case): " + outRcof.toAbsolutePath());
+
+        cfg.rvdSecEnvio = String.valueOf(secEnvio + 1);
+        try {
+            cfg.save(Path.of("sii-tool.properties"));
+        } catch (Exception ignored) {
+        }
+
         persistNextFolio(folio + cases.size());
 
         Path out = InvoiceGenerator.getLastSavedXmlPath();
@@ -97,5 +117,36 @@ public class FiveCasesGenerateOnly {
             Files.createDirectories(FOLIO_COUNTER_PATH.getParent());
         }
         Files.writeString(FOLIO_COUNTER_PATH, String.valueOf(next), StandardCharsets.UTF_8);
+    }
+
+    private static int resolveSecEnvioForDate(String fchEmis) throws Exception {
+        if (fchEmis == null || fchEmis.trim().isEmpty()) {
+            return 1;
+        }
+        String date = fchEmis.trim();
+        Path outDir = Path.of("output");
+        if (!Files.exists(outDir)) {
+            return 1;
+        }
+
+        Pattern p = Pattern.compile("^RVD_RCOF_" + Pattern.quote(date) + "_SEC(\\d+)\\.xml$");
+        int max = 0;
+        try (Stream<Path> stream = Files.list(outDir)) {
+            for (Path file : (Iterable<Path>) stream::iterator) {
+                String name = file.getFileName().toString();
+                Matcher m = p.matcher(name);
+                if (!m.matches()) {
+                    continue;
+                }
+                try {
+                    int v = Integer.parseInt(m.group(1));
+                    if (v > max) {
+                        max = v;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        return max <= 0 ? 1 : (max + 1);
     }
 }
