@@ -109,6 +109,96 @@ public class TedGenerator {
         FRMT.setTextContent(frmtBase64);
     }
 
+    public static void insertTedForAllDocumentos(Document doc, byte[] cafBytes) throws Exception {
+        if (doc == null) {
+            throw new IllegalArgumentException("doc is null");
+        }
+        if (cafBytes == null || cafBytes.length == 0) {
+            throw new IllegalArgumentException("CAF 文件内容为空");
+        }
+
+        Document cafDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                .parse(new java.io.ByteArrayInputStream(cafBytes));
+
+        NodeList rsaskNodes = cafDoc.getElementsByTagName("RSASK");
+        if (rsaskNodes.getLength() == 0) {
+            throw new IllegalArgumentException("CAF文件中缺少RSASK，需要使用公司证书私钥");
+        }
+        PrivateKey privateKey = loadPrivateKeyFromPem(rsaskNodes.item(0).getTextContent());
+
+        NodeList docs = doc.getElementsByTagName("Documento");
+        if (docs == null || docs.getLength() == 0) {
+            throw new IllegalStateException("未找到 Documento 节点，无法插入 TED");
+        }
+
+        for (int i = 0; i < docs.getLength(); i++) {
+            Node n = docs.item(i);
+            if (!(n instanceof Element)) continue;
+            insertTedIntoDocumento(doc, (Element) n, cafDoc, privateKey);
+        }
+    }
+
+    private static void insertTedIntoDocumento(Document doc, Element documento, Document cafDoc, PrivateKey privateKey) throws Exception {
+        if (doc == null || documento == null || cafDoc == null || privateKey == null) {
+            throw new IllegalArgumentException("insertTedIntoDocumento 参数为空");
+        }
+
+        String ns = documento.getNamespaceURI();
+
+        Element cafEl = (Element) cafDoc.getElementsByTagName("CAF").item(0);
+        if (cafEl == null) {
+            throw new IllegalArgumentException("CAF 文件缺少 CAF 节点");
+        }
+        Node cafNode = importElementIntoNamespace(doc, cafEl, ns);
+
+        String RE = safeTrim(getText(documento, "RUTEmisor"));
+        String TD = safeTrim(getText(documento, "TipoDTE"));
+        String F = safeTrim(getText(documento, "Folio"));
+        String FE = safeTrim(getText(documento, "FchEmis"));
+        String RR = safeTrim(getText(documento, "RUTRecep"));
+        String RSR = safeTrim(getText(documento, "RznSocRecep"));
+        String MNT = safeTrim(getText(documento, "MntTotal"));
+
+        NodeList detalleList = documento.getElementsByTagName("Detalle");
+        if (detalleList.getLength() == 0) {
+            throw new IllegalArgumentException("发票必须至少包含一个商品项");
+        }
+        Element firstDetalle = (Element) detalleList.item(0);
+        String IT1 = normalizeIt1(getText(firstDetalle, "NmbItem"));
+
+        String ts = safeTrim(getText(documento, "TmstFirma"));
+
+        Element TED = doc.createElementNS(ns, "TED");
+        TED.setAttribute("version", "1.0");
+
+        Element DD = doc.createElementNS(ns, "DD");
+        appendText(doc, DD, ns, "RE", RE);
+        appendText(doc, DD, ns, "TD", TD);
+        appendText(doc, DD, ns, "F", F);
+        appendText(doc, DD, ns, "FE", FE);
+        appendText(doc, DD, ns, "RR", RR);
+        appendText(doc, DD, ns, "RSR", RSR);
+        appendText(doc, DD, ns, "MNT", MNT);
+        appendText(doc, DD, ns, "IT1", IT1);
+        DD.appendChild(cafNode);
+        appendText(doc, DD, ns, "TSTED", ts);
+        TED.appendChild(DD);
+
+        Element FRMT = doc.createElementNS(ns, "FRMT");
+        FRMT.setAttribute("algoritmo", "SHA1withRSA");
+        TED.appendChild(FRMT);
+
+        Node tmstFirmaNode = documento.getElementsByTagName("TmstFirma").item(0);
+        documento.insertBefore(TED, tmstFirmaNode);
+
+        byte[] ddBytes = canonicalizeForFrmt(DD);
+        Signature sig = Signature.getInstance("SHA1withRSA");
+        sig.initSign(privateKey);
+        sig.update(ddBytes);
+        String frmtBase64 = Base64.getEncoder().encodeToString(sig.sign());
+        FRMT.setTextContent(frmtBase64);
+    }
+
     private static String normalizeIt1(String s) {
         if (s == null) return "";
         // SII 常见提示：可能存在“商品名称多余空格”导致 timbre 无效。
@@ -122,9 +212,9 @@ public class TedGenerator {
 
     private static byte[] canonicalizeForFrmt(Element el) throws Exception {
         // A/B 对照：允许切换 C14N 算法与签名字节编码，以定位 SII 的 timbre 验证口径。
-        String mode = System.getProperty("ted.frmt.mode", "c14n");
+        String mode = System.getProperty("ted.frmt.mode", "template");
         String alg = System.getProperty("ted.frmt.c14nAlg", Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
-        String bytesEncoding = System.getProperty("ted.frmt.bytesEncoding", mode.equalsIgnoreCase("template") ? "ISO-8859-1" : "UTF-8");
+        String bytesEncoding = System.getProperty("ted.frmt.bytesEncoding", "ISO-8859-1");
 
         if (mode.equalsIgnoreCase("template")) {
             String xml = toCompactXml(el);
@@ -295,6 +385,59 @@ public class TedGenerator {
         }
     }
 
+    public static void verifyTedSignatureForAllDocumentos(Document doc, byte[] cafBytes) throws Exception {
+        if (doc == null) {
+            throw new IllegalArgumentException("doc is null");
+        }
+        if (cafBytes == null || cafBytes.length == 0) {
+            throw new IllegalArgumentException("CAF 文件内容为空");
+        }
+
+        CAFResolve.CafData cafData = CAFResolve.loadCaf(new java.io.ByteArrayInputStream(cafBytes));
+        PublicKey publicKey = buildRsaPublicKey(cafData.modulusB64, cafData.exponentB64);
+
+        NodeList docs = doc.getElementsByTagName("Documento");
+        if (docs == null || docs.getLength() == 0) {
+            throw new IllegalStateException("未找到 Documento 节点，无法验签 TED");
+        }
+
+        for (int i = 0; i < docs.getLength(); i++) {
+            Node n = docs.item(i);
+            if (!(n instanceof Element)) continue;
+            verifyTedSignatureForDocumento((Element) n, publicKey);
+        }
+    }
+
+    private static void verifyTedSignatureForDocumento(Element documento, PublicKey publicKey) throws Exception {
+        if (documento == null || publicKey == null) {
+            throw new IllegalArgumentException("verifyTedSignatureForDocumento 参数为空");
+        }
+        Element ted = (Element) documento.getElementsByTagName("TED").item(0);
+        if (ted == null) {
+            throw new IllegalStateException("未找到 TED 节点，无法验签 TED");
+        }
+        Element dd = (Element) ted.getElementsByTagName("DD").item(0);
+        if (dd == null) {
+            throw new IllegalStateException("TED 中缺少 DD 节点");
+        }
+        Element frmt = (Element) ted.getElementsByTagName("FRMT").item(0);
+        if (frmt == null) {
+            throw new IllegalStateException("TED 中缺少 FRMT 节点");
+        }
+
+        byte[] ddBytes = canonicalizeForFrmt(dd);
+        byte[] signature = Base64.getDecoder().decode(frmt.getTextContent().trim());
+
+        Signature sig = Signature.getInstance("SHA1withRSA");
+        sig.initVerify(publicKey);
+        sig.update(ddBytes);
+        boolean ok = sig.verify(signature);
+        System.out.println("TED FRMT 本地验签: " + (ok ? "通过" : "失败"));
+        if (!ok) {
+            throw new IllegalStateException("TED FRMT 本地验签失败，发送将被 SII 判 505");
+        }
+    }
+
     public static void recomputeTedFrmt(Document doc, InputStream cafFile) throws Exception {
         Document cafDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(cafFile);
         NodeList rsaskNodes = cafDoc.getElementsByTagName("RSASK");
@@ -306,6 +449,59 @@ public class TedGenerator {
         Element documento = (Element) doc.getElementsByTagName("Documento").item(0);
         if (documento == null) {
             throw new IllegalStateException("未找到 Documento 节点，无法重算 TED FRMT");
+        }
+        Element ted = (Element) documento.getElementsByTagName("TED").item(0);
+        if (ted == null) {
+            throw new IllegalStateException("未找到 TED 节点，无法重算 TED FRMT");
+        }
+        Element dd = (Element) ted.getElementsByTagName("DD").item(0);
+        if (dd == null) {
+            throw new IllegalStateException("TED 中缺少 DD 节点，无法重算 TED FRMT");
+        }
+        Element frmt = (Element) ted.getElementsByTagName("FRMT").item(0);
+        if (frmt == null) {
+            throw new IllegalStateException("TED 中缺少 FRMT 节点，无法重算 TED FRMT");
+        }
+
+        byte[] ddBytes = canonicalizeForFrmt(dd);
+        Signature sig = Signature.getInstance("SHA1withRSA");
+        sig.initSign(privateKey);
+        sig.update(ddBytes);
+        String frmtBase64 = Base64.getEncoder().encodeToString(sig.sign());
+        frmt.setTextContent(frmtBase64);
+    }
+
+    public static void recomputeTedFrmtForAllDocumentos(Document doc, byte[] cafBytes) throws Exception {
+        if (doc == null) {
+            throw new IllegalArgumentException("doc is null");
+        }
+        if (cafBytes == null || cafBytes.length == 0) {
+            throw new IllegalArgumentException("CAF 文件内容为空");
+        }
+
+        Document cafDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                .parse(new java.io.ByteArrayInputStream(cafBytes));
+        NodeList rsaskNodes = cafDoc.getElementsByTagName("RSASK");
+        if (rsaskNodes.getLength() == 0) {
+            throw new IllegalArgumentException("CAF文件中缺少RSASK，无法重算FRMT");
+        }
+        PrivateKey privateKey = loadPrivateKeyFromPem(rsaskNodes.item(0).getTextContent());
+
+        NodeList docs = doc.getElementsByTagName("Documento");
+        if (docs == null || docs.getLength() == 0) {
+            throw new IllegalStateException("未找到 Documento 节点，无法重算 TED FRMT");
+        }
+
+        for (int i = 0; i < docs.getLength(); i++) {
+            Node n = docs.item(i);
+            if (!(n instanceof Element)) continue;
+            recomputeTedFrmtForDocumento((Element) n, privateKey);
+        }
+    }
+
+    private static void recomputeTedFrmtForDocumento(Element documento, PrivateKey privateKey) throws Exception {
+        if (documento == null || privateKey == null) {
+            throw new IllegalArgumentException("recomputeTedFrmtForDocumento 参数为空");
         }
         Element ted = (Element) documento.getElementsByTagName("TED").item(0);
         if (ted == null) {

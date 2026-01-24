@@ -30,25 +30,51 @@ public class SingleCaseSendAndQuery {
             throw new IllegalStateException("无法加载 sii-tool.properties");
         }
 
-        int folio = nextFolio();
-        SetBasicoCaseFactory.CaseSpec spec = pickSingleCase();
-        InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(cfg, String.valueOf(folio), spec.caseName, spec.lines);
-
         if (!Files.exists(CAF_PATH)) {
             throw new IllegalArgumentException("CAF 文件不存在: " + CAF_PATH.toAbsolutePath());
         }
-        System.out.println("SingleCaseSendAndQuery: Folio=" + folio + ", Case=" + spec.caseName + ", CAF=" + CAF_PATH.toAbsolutePath());
         byte[] cafBytes = Files.readAllBytes(CAF_PATH);
         if (cafBytes.length == 0) {
             throw new IllegalArgumentException("CAF 文件为空: " + CAF_PATH.toAbsolutePath());
         }
 
         boolean onlyGenerate = Boolean.parseBoolean(System.getProperty("sii.onlyGenerate", "false"));
+        boolean generateAllCases = Boolean.parseBoolean(System.getProperty("sii.generateAllCases", "false"));
+
+        int folio = nextFolio();
+
         if (onlyGenerate) {
+            if (generateAllCases) {
+                List<SetBasicoCaseFactory.CaseSpec> cases = SetBasicoCaseFactory.getCases();
+                if (cases == null || cases.isEmpty()) {
+                    throw new IllegalStateException("未找到 SetBasico 的案例列表");
+                }
+                int current = folio;
+                for (SetBasicoCaseFactory.CaseSpec spec : cases) {
+                    InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(cfg, String.valueOf(current), spec.caseName, spec.lines);
+                    System.out.println("SingleCaseSendAndQuery(批量仅生成): Folio=" + current + ", Case=" + spec.caseName + ", CAF=" + CAF_PATH.toAbsolutePath());
+                    generateOnly(cfg, invoiceData, cafBytes);
+                    current++;
+                }
+                persistNextFolio(folio + cases.size());
+                return;
+            }
+
+            SetBasicoCaseFactory.CaseSpec spec = pickSingleCase();
+            InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(cfg, String.valueOf(folio), spec.caseName, spec.lines);
+            System.out.println("SingleCaseSendAndQuery: Folio=" + folio + ", Case=" + spec.caseName + ", CAF=" + CAF_PATH.toAbsolutePath());
             generateOnly(cfg, invoiceData, cafBytes);
             persistNextFolio(folio + 1);
             return;
         }
+
+        if (generateAllCases) {
+            throw new IllegalArgumentException("sii.generateAllCases 仅支持在 sii.onlyGenerate=true 下使用，避免误发 5 张到 SII");
+        }
+
+        SetBasicoCaseFactory.CaseSpec spec = pickSingleCase();
+        InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(cfg, String.valueOf(folio), spec.caseName, spec.lines);
+        System.out.println("SingleCaseSendAndQuery: Folio=" + folio + ", Case=" + spec.caseName + ", CAF=" + CAF_PATH.toAbsolutePath());
 
         InvoiceSendRequest request = buildRequest(invoiceData, cafBytes);
         ResultadoEnvioPost envioPost = sendSingleInvoice(request);

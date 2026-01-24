@@ -21,7 +21,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,7 +39,6 @@ import org.bouncycastle.util.encoders.Hex;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 import javax.xml.crypto.*;
-import javax.xml.crypto.dsig.*;
 import javax.xml.crypto.dsig.CanonicalizationMethod;
 import javax.xml.crypto.dsig.DigestMethod;
 import javax.xml.crypto.dsig.Reference;
@@ -96,6 +94,214 @@ public class InvoiceGenerator {
 
     public String generateInvoiceXML(InvoiceData invoiceData, KeyStore ks, String pfxPassword, InputStream cafFile) throws Exception {
         return generateInvoiceXML(invoiceData, ks, pfxPassword, cafFile, null, null);
+    }
+
+    public String generateInvoiceXML(List<InvoiceData> invoiceDataList, KeyStore ks, String pfxPassword, InputStream cafFile, String aliasDocumento, String aliasSetDte) throws Exception {
+        if (invoiceDataList == null || invoiceDataList.isEmpty()) {
+            throw new IllegalArgumentException("invoiceDataList 为空");
+        }
+        for (InvoiceData inv : invoiceDataList) {
+            if (inv == null) {
+                throw new IllegalArgumentException("invoiceDataList 包含 null");
+            }
+        }
+
+        InvoiceData first = invoiceDataList.get(0);
+        if (first.getRutEnvia() == null || first.getRutEnvia().trim().isEmpty()) {
+            throw new IllegalArgumentException("发票数据中的 rutEnvia 不能为空");
+        }
+        if (first.getRutEmisor() == null || first.getRutEmisor().trim().isEmpty()) {
+            throw new IllegalArgumentException("发票数据中的 rutEmisor 不能为空");
+        }
+
+        EnvioBOLETA envioBOLETA = createEnvioBOLETA(invoiceDataList);
+        JAXBContext context = JAXBContext.newInstance(EnvioBOLETA.class);
+        Marshaller marshaller = context.createMarshaller();
+        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, false);
+        marshaller.setProperty(Marshaller.JAXB_ENCODING, "ISO-8859-1");
+
+        StringWriter writer = new StringWriter();
+        marshaller.marshal(envioBOLETA, writer);
+
+        String xmlContent = writer.toString().replace("\r\n", "\n").replace("\n", "").trim();
+
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setNamespaceAware(true);
+        Document doc = dbf.newDocumentBuilder()
+                .parse(new ByteArrayInputStream(xmlContent.getBytes(StandardCharsets.ISO_8859_1)));
+
+        String firstFolio = first.getFolio() != null ? first.getFolio() : "unknown";
+        String lastFolio = invoiceDataList.get(invoiceDataList.size() - 1).getFolio() != null ? invoiceDataList.get(invoiceDataList.size() - 1).getFolio() : "unknown";
+        String timestamp = ZonedDateTime.now(CHILE_DEFAULT_ZONE).format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String filePrefix = String.format("batch_%s_%s_%s", firstFolio, lastFolio, timestamp);
+
+        byte[] cafBytes = cafFile.readAllBytes();
+        if (cafBytes.length == 0) {
+            throw new IllegalArgumentException("CAF 文件内容为空，无法生成 TED");
+        }
+
+        TedGenerator.insertTedForAllDocumentos(doc, cafBytes);
+        TedGenerator.verifyTedSignatureForAllDocumentos(doc, cafBytes);
+
+        doc = normalizeDocument(doc);
+        normalizeCarriageReturnsInTextNodes(doc);
+        stripWhitespaceTextNodes(doc);
+
+        TedGenerator.recomputeTedFrmtForAllDocumentos(doc, cafBytes);
+        TedGenerator.verifyTedSignatureForAllDocumentos(doc, cafBytes);
+        normalizeCarriageReturnsInTextNodes(doc);
+
+        String aliasEmisor;
+        if (aliasDocumento != null && !aliasDocumento.trim().isEmpty()) {
+            aliasEmisor = aliasDocumento.trim();
+        } else {
+            aliasEmisor = selectSigningAlias(ks, first.getRutEmisor());
+        }
+
+        String aliasEnvia;
+        if (aliasSetDte != null && !aliasSetDte.trim().isEmpty()) {
+            aliasEnvia = aliasSetDte.trim();
+        } else {
+            aliasEnvia = selectSigningAlias(ks, first.getRutEnvia());
+        }
+
+        PrivateKey privateKeyEmisor = (PrivateKey) ks.getKey(aliasEmisor, pfxPassword.toCharArray());
+        X509Certificate certEmisor = (X509Certificate) ks.getCertificate(aliasEmisor);
+
+        PrivateKey privateKeyEnvia = (PrivateKey) ks.getKey(aliasEnvia, pfxPassword.toCharArray());
+        X509Certificate certEnvia = (X509Certificate) ks.getCertificate(aliasEnvia);
+
+        String signer = System.getProperty("sii.signer", "chilkat");
+        boolean allowNonChilkatSigner = Boolean.parseBoolean(System.getProperty("sii.allowNonChilkatSigner", "false"));
+        if (!allowNonChilkatSigner && (signer == null || !signer.trim().equalsIgnoreCase("chilkat"))) {
+            throw new IllegalStateException("签名器已被限制为 Chilkat。如需对照实验，请设置 -Dsii.allowNonChilkatSigner=true 且显式指定 -Dsii.signer=...。");
+        }
+
+        if (signer != null && signer.trim().equalsIgnoreCase("chilkat")) {
+            Element setEl = (Element) doc.getElementsByTagName("SetDTE").item(0);
+            if (setEl == null) {
+                throw new IllegalStateException("Chilkat 签名：未找到 SetDTE 元素");
+            }
+
+            NodeList docNodes = doc.getElementsByTagName("Documento");
+            if (docNodes == null || docNodes.getLength() == 0) {
+                throw new IllegalStateException("Chilkat 签名：未找到 Documento 元素");
+            }
+
+            NodeList dteNodes = doc.getElementsByTagName("DTE");
+            if (dteNodes == null || dteNodes.getLength() == 0) {
+                throw new IllegalStateException("Chilkat 签名：未找到 DTE 元素");
+            }
+            if (dteNodes.getLength() != docNodes.getLength()) {
+                throw new IllegalStateException("Chilkat 签名：DTE/Documento 数量不一致，无法批量签名");
+            }
+
+            String siiNs = "http://www.sii.cl/SiiDte";
+            try {
+                for (int i = 0; i < dteNodes.getLength(); i++) {
+                    Node dn = dteNodes.item(i);
+                    if (!(dn instanceof Element)) continue;
+                    Element dteEl = (Element) dn;
+                    if (!dteEl.hasAttribute("xmlns") && (dteEl.getNamespaceURI() == null || siiNs.equals(dteEl.getNamespaceURI()))) {
+                        dteEl.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
+                    }
+                }
+                for (int i = 0; i < docNodes.getLength(); i++) {
+                    Node n = docNodes.item(i);
+                    if (!(n instanceof Element)) continue;
+                    Element docEl = (Element) n;
+                    if (!docEl.hasAttribute("xmlns") && (docEl.getNamespaceURI() == null || siiNs.equals(docEl.getNamespaceURI()))) {
+                        docEl.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
+                    }
+                }
+                if (!setEl.hasAttribute("xmlns") && (setEl.getNamespaceURI() == null || siiNs.equals(setEl.getNamespaceURI()))) {
+                    setEl.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
+                }
+            } catch (Exception ignored) {
+            }
+
+            String setId = setEl.getAttribute("ID");
+            if (setId == null || setId.trim().isEmpty()) {
+                throw new IllegalStateException("Chilkat 签名：SetDTE 缺少 ID 属性");
+            }
+
+            // 关键：不要在同一个 XML 上连续 CreateXmlDSigSb 5 次。
+            // 逐个 Documento 在“最小 EnvioBOLETA 片段”中签名后再合并，可保证 SignedInfo 的祖先命名空间上下文稳定。
+            for (int i = 0; i < dteNodes.getLength(); i++) {
+                Element dteEl = (Element) dteNodes.item(i);
+                Element docEl = (Element) docNodes.item(i);
+
+                String docId = docEl.getAttribute("ID");
+                if (docId == null || docId.trim().isEmpty()) {
+                    throw new IllegalStateException("Chilkat 签名：Documento 缺少 ID 属性");
+                }
+
+                DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
+                f.setNamespaceAware(true);
+                Document mini = f.newDocumentBuilder().newDocument();
+
+                Element root = mini.createElementNS(siiNs, "EnvioBOLETA");
+                root.setAttribute("version", "1.0");
+                root.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
+                root.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+                root.setAttributeNS("http://www.w3.org/2001/XMLSchema-instance", "xsi:schemaLocation", "http://www.sii.cl/SiiDte EnvioBOLETA_v11.xsd");
+                mini.appendChild(root);
+
+                Element setMini = mini.createElementNS(siiNs, "SetDTE");
+                setMini.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
+                setMini.setAttribute("ID", setId);
+                root.appendChild(setMini);
+
+                Node importedDte = mini.importNode(dteEl, true);
+                setMini.appendChild(importedDte);
+
+                String miniXml = toCleanString(mini);
+                String signedMini = signXmlWithChilkat(
+                        miniXml,
+                        "EnvioBOLETA|SetDTE|DTE",
+                        0,
+                        docId,
+                        certEmisor,
+                        privateKeyEmisor,
+                        System.getProperty("chilkat.behaviors.inner", "IndentedSignature")
+                );
+
+                Document parsedMini = f.newDocumentBuilder().parse(new ByteArrayInputStream(signedMini.getBytes(StandardCharsets.ISO_8859_1)));
+                NodeList signedDtes = parsedMini.getElementsByTagName("DTE");
+                if (signedDtes == null || signedDtes.getLength() == 0) {
+                    throw new IllegalStateException("Chilkat 批量签名：未从 mini XML 中取到 DTE");
+                }
+                Node signedDte = signedDtes.item(0);
+                Node importedSignedDte = doc.importNode(signedDte, true);
+                Node parent = dteEl.getParentNode();
+                parent.replaceChild(importedSignedDte, dteEl);
+            }
+
+            // 合并完 5 个带内层签名的 DTE 后，再做一次外层 SetDTE 签名
+            String xmlWithDocSigs = toCleanString(doc);
+
+            String xmlAfterSetSig = signXmlWithChilkat(
+                    xmlWithDocSigs,
+                    "EnvioBOLETA",
+                    0,
+                    setId,
+                    certEnvia,
+                    privateKeyEnvia,
+                    System.getProperty("chilkat.behaviors.outer", "SignExistingSignatures")
+            );
+
+            String finalXml = saveXmlStringRaw(xmlAfterSetSig, filePrefix + "_05_最终XML_发送.xml");
+            validateSignaturesWithChilkat(finalXml);
+
+            boolean extraVerify = Boolean.parseBoolean(System.getProperty("sii.extraVerify", "false"));
+            if (extraVerify) {
+                validateSignaturesAfterSerialize(finalXml);
+                validateSignaturesWithSantuario(finalXml);
+            }
+            return finalXml;
+        }
+
+        throw new IllegalStateException("批量生成仅支持 Chilkat 签名器");
     }
 
     private static void ensureChilkatLoaded() {
@@ -1640,12 +1846,37 @@ public class InvoiceGenerator {
         return new EnvioBOLETA(setDTE);
     }
 
+    public EnvioBOLETA createEnvioBOLETA(List<InvoiceData> invoiceDataList) {
+        SetDTE setDTE = createSetDTE(invoiceDataList);
+        return new EnvioBOLETA(setDTE);
+    }
+
     private SetDTE createSetDTE(InvoiceData invoiceData) {
         Caratula caratula = createCaratula(invoiceData);
         List<DTE> dteList = new ArrayList<>();
         DTE dte = createDTE(invoiceData);
         dteList.add(dte);
         return new SetDTE(caratula, dteList, generateSetDteIdWithChileTime(invoiceData.getRutEmisor()));
+    }
+
+    private SetDTE createSetDTE(List<InvoiceData> invoiceDataList) {
+        if (invoiceDataList == null || invoiceDataList.isEmpty()) {
+            throw new IllegalArgumentException("invoiceDataList 为空");
+        }
+        InvoiceData first = invoiceDataList.get(0);
+        if (first == null) {
+            throw new IllegalArgumentException("invoiceDataList[0] 为空");
+        }
+
+        Caratula caratula = createCaratula(invoiceDataList);
+        List<DTE> dteList = new ArrayList<>();
+        for (InvoiceData invoiceData : invoiceDataList) {
+            if (invoiceData == null) {
+                throw new IllegalArgumentException("invoiceDataList 包含 null");
+            }
+            dteList.add(createDTE(invoiceData));
+        }
+        return new SetDTE(caratula, dteList, generateSetDteIdWithChileTime(first.getRutEmisor()));
     }
 
     private Caratula createCaratula(InvoiceData invoiceData) {
@@ -1657,6 +1888,37 @@ public class InvoiceGenerator {
         subTotDTEList.add(new SubTotDTE(invoiceData.getTipoDTE(), 1));
         return new Caratula(rutEmisor, rutEnvia, invoiceData.getRutReceptor(), invoiceData.getFchResol(),
                 invoiceData.getNroResol(), invoiceData.getTmstFirmaEnv(), subTotDTEList);
+    }
+
+    private Caratula createCaratula(List<InvoiceData> invoiceDataList) {
+        if (invoiceDataList == null || invoiceDataList.isEmpty()) {
+            throw new IllegalArgumentException("invoiceDataList 为空");
+        }
+        InvoiceData first = invoiceDataList.get(0);
+        if (first == null) {
+            throw new IllegalArgumentException("invoiceDataList[0] 为空");
+        }
+
+        String rutEmisor = first.getRutEmisor();
+        String rutEnvia = first.getRutEnvia();
+        if (rutEnvia == null || rutEnvia.trim().isEmpty()) throw new IllegalArgumentException("rutEnvia 不能为空");
+        if (rutEmisor == null || rutEmisor.trim().isEmpty()) throw new IllegalArgumentException("rutEmisor 不能为空");
+
+        int count = invoiceDataList.size();
+        Integer tipo = first.getTipoDTE();
+        for (InvoiceData inv : invoiceDataList) {
+            if (inv == null) {
+                throw new IllegalArgumentException("invoiceDataList 包含 null");
+            }
+            if (tipo != null && inv.getTipoDTE() != null && !tipo.equals(inv.getTipoDTE())) {
+                throw new IllegalArgumentException("批量 EnvioBOLETA 仅支持同一 TipoDTE");
+            }
+        }
+
+        List<SubTotDTE> subTotDTEList = new ArrayList<>();
+        subTotDTEList.add(new SubTotDTE(first.getTipoDTE(), count));
+        return new Caratula(rutEmisor, rutEnvia, first.getRutReceptor(), first.getFchResol(),
+                first.getNroResol(), first.getTmstFirmaEnv(), subTotDTEList);
     }
 
     private DTE createDTE(InvoiceData invoiceData) {
