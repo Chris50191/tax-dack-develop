@@ -54,10 +54,7 @@ public class TedGenerator {
         if (cafEl == null) {
             throw new IllegalArgumentException("CAF 文件缺少 CAF 节点");
         }
-        // CAF 文件本身通常无命名空间，并包含 FRMA（SII 对 DA 的签名）。
-        // 这里必须保持 CAF 的“无命名空间”语义，否则 SII 侧可能判 timbre 无效。
-        // 将 CAF 作为无命名空间节点导入到 DD 下，序列化时会自动产生 xmlns="" 来取消父级默认命名空间。
-        Node cafNode = doc.importNode(cafEl, true);
+        Node cafNode = importElementIntoNamespace(doc, cafEl, ns);
 
         // 从 documento 提取字段
         String RE = safeTrim(getText(documento, "RUTEmisor"));
@@ -129,6 +126,39 @@ public class TedGenerator {
         // 为避免字节不一致，这里将 C14N 结果按 UTF-8 解码后，再以 ISO-8859-1 编码为签名输入。
         String s = new String(utf8, java.nio.charset.StandardCharsets.UTF_8);
         return s.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+    }
+
+    private static Node importElementIntoNamespace(Document targetDoc, Element src, String ns) {
+        if (src == null) return null;
+
+        String local = src.getLocalName();
+        String qName = (local != null && !local.isEmpty()) ? local : src.getNodeName();
+        Element out = targetDoc.createElementNS(ns, qName);
+
+        if (src.hasAttributes()) {
+            for (int i = 0; i < src.getAttributes().getLength(); i++) {
+                Node a = src.getAttributes().item(i);
+                if (a == null) continue;
+                out.setAttribute(a.getNodeName(), a.getNodeValue());
+            }
+        }
+
+        NodeList children = src.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node c = children.item(i);
+            if (c == null) continue;
+            switch (c.getNodeType()) {
+                case Node.ELEMENT_NODE:
+                    out.appendChild(importElementIntoNamespace(targetDoc, (Element) c, ns));
+                    break;
+                case Node.TEXT_NODE:
+                    out.appendChild(targetDoc.createTextNode(c.getNodeValue()));
+                    break;
+                default:
+                    break;
+            }
+        }
+        return out;
     }
 
     private static PublicKey buildRsaPublicKey(String modulusB64, String exponentB64) throws Exception {
