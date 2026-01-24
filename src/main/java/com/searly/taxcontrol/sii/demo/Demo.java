@@ -47,13 +47,50 @@ public class Demo {
       }
 
       ResultadoEnvioPost resultadoEnvioPost = registerInvoiceDemo(service);
-      Thread.sleep(10000);
-      // 查询发票
-      queryInvoiceDemo(service, resultadoEnvioPost);
+      // 查询发票（轮询）
+      queryInvoiceDemoWithRetry(service, resultadoEnvioPost);
 
     } catch (Exception e) {
       System.err.println("发生错误: " + e.getMessage());
       e.printStackTrace();
+    }
+  }
+
+  private static void queryInvoiceDemoWithRetry(SiiApiService service, ResultadoEnvioPost resultadoEnvioPost) {
+    long[] delaysSeconds = new long[]{5, 15, 30, 60, 120, 300, 600};
+    for (int i = 0; i < delaysSeconds.length; i++) {
+      try {
+        Thread.sleep(delaysSeconds[i] * 1000L);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        System.err.println("查询等待被中断");
+        return;
+      }
+
+      System.out.println("\n===== 发票查询轮询 第 " + (i + 1) + " 次 (等待 " + delaysSeconds[i] + "s) =====");
+      SiiEnvioStatusResponse response = queryInvoiceDemo(service, resultadoEnvioPost);
+      if (response != null) {
+        if (response.getDetalleRepRech() != null && !response.getDetalleRepRech().isEmpty()) {
+          return;
+        }
+
+        if (response.getEstadistica() != null && !response.getEstadistica().isEmpty()) {
+          return;
+        }
+
+        String estado = response.getEstado();
+        if (estado == null) {
+          continue;
+        }
+
+        boolean keepPolling = "REC".equalsIgnoreCase(estado)
+                || "SOK".equalsIgnoreCase(estado)
+                || "EPR".equalsIgnoreCase(estado);
+
+        if (!keepPolling) {
+          return;
+        }
+      }
     }
   }
 
@@ -256,8 +293,8 @@ public class Demo {
 //    data.setIsReferences(Arrays.asList(reference));
 
     // 授权信息
-    data.setFchResol("2025-08-13");        // 授权日期
-    data.setNroResol(100);                   // 授权号码
+    data.setFchResol("2026-01-22");        // 授权日期
+    data.setNroResol(0);                   // 授权号码
 
     // 时间戳
     String currentTime = now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
@@ -270,13 +307,13 @@ public class Demo {
   /**
    * 发票查询演示
    */
-  private static void queryInvoiceDemo(SiiApiService service, ResultadoEnvioPost resultadoEnvioPost) {
+  private static SiiEnvioStatusResponse queryInvoiceDemo(SiiApiService service, ResultadoEnvioPost resultadoEnvioPost) {
     System.out.println("\n===== 发票查询演示 =====");
     try {
       // 空值检查
       if (resultadoEnvioPost == null) {
         System.err.println("错误：发票注册结果为空，无法查询");
-        return;
+        return null;
       }
       
       String rutEmisor = resultadoEnvioPost.getRutEmisor();
@@ -284,19 +321,19 @@ public class Demo {
       
       if (rutEmisor == null || trackId == null) {
         System.err.println("错误：缺少必要的查询参数");
-        return;
+        return null;
       }
       
       // 验证 RUT 格式
       if (!rutEmisor.contains("-")) {
         System.err.println("错误：RUT 格式不正确，应为 XXXXX-XX 格式");
-        return;
+        return null;
       }
       
       final String[] split = rutEmisor.split("-");
       if (split.length != 2) {
         System.err.println("错误：RUT 格式不正确");
-        return;
+        return null;
       }
       
       SiiEnvioStatusResponse siiEnvioStatusResponse = service.queryInvoice(split[0], split[1], trackId);
@@ -306,10 +343,15 @@ public class Demo {
       System.out.println("跟踪ID: " + siiEnvioStatusResponse.getTrackId());
       System.out.println("接收时间: " + siiEnvioStatusResponse.getFechaRecepcion());
       System.out.println("处理状态: " + siiEnvioStatusResponse.getEstado());
+      System.out.println("estadistica: " + siiEnvioStatusResponse.getEstadistica());
+      System.out.println("detalle_rep_rech: " + siiEnvioStatusResponse.getDetalleRepRech());
+
+      return siiEnvioStatusResponse;
 
     } catch (VeriFactuException e) {
       System.err.println("查询发票时发生错误: " + e.getMessage());
       e.printStackTrace();
+      return null;
     }
   }
 

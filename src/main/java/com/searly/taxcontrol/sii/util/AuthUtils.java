@@ -71,6 +71,15 @@ public class AuthUtils {
     long expireAt;
   }
 
+  public static synchronized String getCachedToken(String rut) {
+    TokenInfo info = tokenCache.get(rut);
+    long now = System.currentTimeMillis();
+    if (info != null && info.expireAt > now) {
+      return info.token;
+    }
+    return null;
+  }
+
   public static synchronized String getSemilla(String baseUrl, String rut, RestTemplate restTemplate) {
     try {
       // 先从缓存取

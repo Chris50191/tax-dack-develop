@@ -37,6 +37,7 @@ public class InvoiceData {
     
     // 金额信息
     private BigDecimal mntNeto;           // 净额
+    private BigDecimal mntExe;            // 免税金额
     private BigDecimal iva;               // IVA税额
     private BigDecimal mntAdic;           // 附加税额
     private BigDecimal mntTotal;          // 总金额
@@ -85,8 +86,10 @@ public class InvoiceData {
     public static class Product {
         private String nmbItem;            // 商品名称
         private BigDecimal qtyItem;           // 商品数量
+        private String unmdItem;           // 单位
         private BigDecimal prcItem;           // 商品单价
         private BigDecimal montoItem;         // 商品金额
+        private Integer indExe;            // 免税/不可开票标识
         private BigDecimal realAmountWithoutTax;         // 不含税金额
         private BigDecimal taxAmount;         // 增值税额
         private BigDecimal addTaxAmount;         // 附加税额
@@ -142,6 +145,14 @@ public class InvoiceData {
             this.qtyItem = qtyItem;
         }
 
+        public String getUnmdItem() {
+            return this.unmdItem;
+        }
+
+        public void setUnmdItem(String unmdItem) {
+            this.unmdItem = unmdItem;
+        }
+
         public BigDecimal getPrcItem() {
             return this.prcItem;
         }
@@ -156,6 +167,14 @@ public class InvoiceData {
 
         public void setMontoItem(BigDecimal montoItem) {
             this.montoItem = montoItem;
+        }
+
+        public Integer getIndExe() {
+            return this.indExe;
+        }
+
+        public void setIndExe(Integer indExe) {
+            this.indExe = indExe;
         }
 
         public BigDecimal getRealAmountWithoutTax() {
@@ -421,6 +440,14 @@ public class InvoiceData {
 
     public void setMntNeto(BigDecimal mntNeto) {
         this.mntNeto = mntNeto;
+    }
+
+    public BigDecimal getMntExe() {
+        return this.mntExe;
+    }
+
+    public void setMntExe(BigDecimal mntExe) {
+        this.mntExe = mntExe;
     }
 
     public BigDecimal getIva() {

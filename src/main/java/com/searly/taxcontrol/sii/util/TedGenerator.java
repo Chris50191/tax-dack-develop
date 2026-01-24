@@ -12,10 +12,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Signature;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 
 public class TedGenerator {
@@ -65,44 +68,121 @@ public class TedGenerator {
         
         String ts = getText(documento, "TmstFirma");
 
-        // 创建 TED
-        Document tedDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
-        Element TED = tedDoc.createElement("TED");
+        String ns = documento.getNamespaceURI();
+
+        Element TED = doc.createElementNS(ns, "TED");
         TED.setAttribute("version", "1.0");
 
-        Element DD = tedDoc.createElement("DD");
-        appendText(tedDoc, DD, "RE", RE);
-        appendText(tedDoc, DD, "TD", TD);
-        appendText(tedDoc, DD, "F", F);
-        appendText(tedDoc, DD, "FE", FE);
-        appendText(tedDoc, DD, "RR", RR);
-        appendText(tedDoc, DD, "RSR", RSR);
-        appendText(tedDoc, DD, "MNT", MNT);
-        appendText(tedDoc, DD, "IT1", IT1);
+        Element DD = doc.createElementNS(ns, "DD");
+        appendText(doc, DD, ns, "RE", RE);
+        appendText(doc, DD, ns, "TD", TD);
+        appendText(doc, DD, ns, "F", F);
+        appendText(doc, DD, ns, "FE", FE);
+        appendText(doc, DD, ns, "RR", RR);
+        appendText(doc, DD, ns, "RSR", RSR);
+        appendText(doc, DD, ns, "MNT", MNT);
+        appendText(doc, DD, ns, "IT1", IT1);
 
-        // 添加 CAF
-        DD.appendChild(tedDoc.importNode(cafNode, true));
-
-        // 添加 TSTED
-        appendText(tedDoc, DD, "TSTED", ts);
-
+        DD.appendChild(cafNode);
+        appendText(doc, DD, ns, "TSTED", ts);
         TED.appendChild(DD);
 
-        // 签名 DD 节点
+        Element FRMT = doc.createElementNS(ns, "FRMT");
+        FRMT.setAttribute("algoritmo", "SHA1withRSA");
+        TED.appendChild(FRMT);
+
+        // 先插入到最终树中，确保 C14N 的命名空间上下文与最终发送一致
+        Node tmstFirmaNode = documento.getElementsByTagName("TmstFirma").item(0);
+        documento.insertBefore(TED, tmstFirmaNode);
+
         byte[] ddBytes = canonicalizeInclusive(DD);
         Signature sig = Signature.getInstance("SHA1withRSA");
         sig.initSign(privateKey);
         sig.update(ddBytes);
         String frmtBase64 = Base64.getEncoder().encodeToString(sig.sign());
-
-        Element FRMT = tedDoc.createElement("FRMT");
-        FRMT.setAttribute("algoritmo", "SHA1withRSA");
         FRMT.setTextContent(frmtBase64);
-        TED.appendChild(FRMT);
+    }
 
-        // 插入到 Detalle 后、TmstFirma 前
-        Node tmstFirmaNode = documento.getElementsByTagName("TmstFirma").item(0);
-        documento.insertBefore(doc.importNode(TED, true), tmstFirmaNode);
+    private static PublicKey buildRsaPublicKey(String modulusB64, String exponentB64) throws Exception {
+        if (modulusB64 == null || exponentB64 == null) {
+            throw new IllegalArgumentException("CAF 公钥参数为空，无法构建公钥");
+        }
+        byte[] modBytes = Base64.getDecoder().decode(modulusB64.trim());
+        byte[] expBytes = Base64.getDecoder().decode(exponentB64.trim());
+        BigInteger modulus = new BigInteger(1, modBytes);
+        BigInteger exponent = new BigInteger(1, expBytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePublic(new RSAPublicKeySpec(modulus, exponent));
+    }
+
+    /**
+     * 使用 CAF 公钥验签 TED/FRMT（调试 505 问题）
+     */
+    public static void verifyTedSignature(Document doc, InputStream cafFile) throws Exception {
+        CAFResolve.CafData cafData = CAFResolve.loadCaf(cafFile);
+        PublicKey publicKey = buildRsaPublicKey(cafData.modulusB64, cafData.exponentB64);
+
+        Element documento = (Element) doc.getElementsByTagName("Documento").item(0);
+        if (documento == null) {
+            throw new IllegalStateException("未找到 Documento 节点，无法验签 TED");
+        }
+        Element ted = (Element) documento.getElementsByTagName("TED").item(0);
+        if (ted == null) {
+            throw new IllegalStateException("未找到 TED 节点，无法验签 TED");
+        }
+        Element dd = (Element) ted.getElementsByTagName("DD").item(0);
+        if (dd == null) {
+            throw new IllegalStateException("TED 中缺少 DD 节点");
+        }
+        Element frmt = (Element) ted.getElementsByTagName("FRMT").item(0);
+        if (frmt == null) {
+            throw new IllegalStateException("TED 中缺少 FRMT 节点");
+        }
+
+        byte[] ddBytes = canonicalizeInclusive(dd);
+        byte[] signature = Base64.getDecoder().decode(frmt.getTextContent().trim());
+
+        Signature sig = Signature.getInstance("SHA1withRSA");
+        sig.initVerify(publicKey);
+        sig.update(ddBytes);
+        boolean ok = sig.verify(signature);
+        System.out.println("TED FRMT 本地验签: " + (ok ? "通过" : "失败"));
+        if (!ok) {
+            throw new IllegalStateException("TED FRMT 本地验签失败，发送将被 SII 判 505");
+        }
+    }
+
+    public static void recomputeTedFrmt(Document doc, InputStream cafFile) throws Exception {
+        Document cafDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(cafFile);
+        NodeList rsaskNodes = cafDoc.getElementsByTagName("RSASK");
+        if (rsaskNodes.getLength() == 0) {
+            throw new IllegalArgumentException("CAF文件中缺少RSASK，无法重算FRMT");
+        }
+        PrivateKey privateKey = loadPrivateKeyFromPem(rsaskNodes.item(0).getTextContent());
+
+        Element documento = (Element) doc.getElementsByTagName("Documento").item(0);
+        if (documento == null) {
+            throw new IllegalStateException("未找到 Documento 节点，无法重算 TED FRMT");
+        }
+        Element ted = (Element) documento.getElementsByTagName("TED").item(0);
+        if (ted == null) {
+            throw new IllegalStateException("未找到 TED 节点，无法重算 TED FRMT");
+        }
+        Element dd = (Element) ted.getElementsByTagName("DD").item(0);
+        if (dd == null) {
+            throw new IllegalStateException("TED 中缺少 DD 节点，无法重算 TED FRMT");
+        }
+        Element frmt = (Element) ted.getElementsByTagName("FRMT").item(0);
+        if (frmt == null) {
+            throw new IllegalStateException("TED 中缺少 FRMT 节点，无法重算 TED FRMT");
+        }
+
+        byte[] ddBytes = canonicalizeInclusive(dd);
+        Signature sig = Signature.getInstance("SHA1withRSA");
+        sig.initSign(privateKey);
+        sig.update(ddBytes);
+        String frmtBase64 = Base64.getEncoder().encodeToString(sig.sign());
+        frmt.setTextContent(frmtBase64);
     }
 
     // 从 PEM 私钥解析
@@ -196,8 +276,8 @@ public class TedGenerator {
     }
 
     // 添加子元素
-    private static void appendText(Document doc, Element parent, String tag, String value) {
-        Element e = doc.createElement(tag);
+    private static void appendText(Document doc, Element parent, String ns, String tag, String value) {
+        Element e = doc.createElementNS(ns, tag);
         e.setTextContent(value);
         parent.appendChild(e);
     }

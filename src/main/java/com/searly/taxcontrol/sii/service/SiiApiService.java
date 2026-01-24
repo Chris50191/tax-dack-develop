@@ -30,13 +30,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.converter.xml.Jaxb2RootElementHttpMessageConverter;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.net.ssl.SSLContext;
@@ -95,6 +98,117 @@ public class SiiApiService implements SiiApi {
     log.info("验证地址: " + validateUrl);
     log.info("已启用自动重定向处理");
 
+  }
+
+  public String getOrCreateToken(String rutDigits) throws VeriFactuException {
+    if (rutDigits == null || rutDigits.trim().isEmpty()) {
+      throw new VeriFactuException("rutDigits is null");
+    }
+    String rut = rutDigits.trim();
+
+    String cached = AuthUtils.getCachedToken(rut);
+    if (cached != null && !cached.trim().isEmpty()) {
+      return cached;
+    }
+
+    RuntimeException last = null;
+    for (int attempt = 1; attempt <= 3; attempt++) {
+      try {
+        String semilla = AuthUtils.getSemilla(apiBaseUrl, rut, restTemplate);
+        KeyStore keyStore;
+        if (certificate != null) {
+          keyStore = CertificateManager.loadPKCS12Certificate(certificate, certificatePassword);
+        } else {
+          keyStore = CertificateManager.loadPKCS12Certificate(certificatePath, certificatePassword);
+        }
+        String signedXml = AuthUtils.signToken(semilla, keyStore, certificatePassword);
+        if (StringUtils.isEmpty(signedXml)) {
+          throw new VeriFactuException("signedXml is null");
+        }
+        String token = AuthUtils.getToken(apiBaseUrl, rut, restTemplate, signedXml);
+        if (token == null || token.trim().isEmpty()) {
+          throw new VeriFactuException("token is null");
+        }
+        return token;
+      } catch (RuntimeException e) {
+        last = e;
+        if (attempt < 3) {
+          try {
+            Thread.sleep(500L * (1L << (attempt - 1)));
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new VeriFactuException("token retry interrupted", ie);
+          }
+        }
+      } catch (Exception e) {
+        last = new RuntimeException(e);
+        if (attempt < 3) {
+          try {
+            Thread.sleep(500L * (1L << (attempt - 1)));
+          } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new VeriFactuException("token retry interrupted", ie);
+          }
+        }
+      }
+    }
+
+    throw new VeriFactuException("token is null", last);
+  }
+
+  public String sendRvd(String token, EnvioPost envioPost, byte[] xmlContent, String endpointPath) {
+    try {
+      if (endpointPath == null || endpointPath.trim().isEmpty()) {
+        throw new RuntimeException("endpointPath is null");
+      }
+      String path = endpointPath.trim();
+      if (!path.startsWith("/")) {
+        path = "/" + path;
+      }
+
+      String url = boletaBaseUrl + path;
+      log.log(Level.INFO, "发送RVD/RCOF: " + url);
+
+      if (token == null || token.trim().isEmpty()) {
+        throw new RuntimeException("token is null");
+      }
+
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+      // openapi.yaml: securitySchemes TOKEN 使用 header Cookie: TOKEN=xxxx
+      headers.set("Cookie", "TOKEN=" + token.trim());
+      headers.set("User-Agent", "Mozilla/4.0 (compatible; PROG 1.0; Windows NT)");
+      headers.set("Accept", "*/*");
+      headers.set("Accept-Encoding", "gzip, deflate");
+      headers.set("Connection", "keep-alive");
+
+      org.springframework.util.MultiValueMap<String, Object> body = new org.springframework.util.LinkedMultiValueMap<>();
+      body.add("rutSender", String.valueOf(envioPost.getRutSender()));
+      body.add("dvSender", envioPost.getDvSender());
+      body.add("rutCompany", String.valueOf(envioPost.getRutCompany()));
+      body.add("dvCompany", envioPost.getDvCompany());
+
+      org.springframework.core.io.ByteArrayResource fileResource = new org.springframework.core.io.ByteArrayResource(xmlContent) {
+        @Override
+        public String getFilename() {
+          return "rvd.xml";
+        }
+      };
+      body.add("archivo", fileResource);
+
+      HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+      RestTemplate restTemplate = new RestTemplate();
+      restTemplate.getMessageConverters().add(new FormHttpMessageConverter());
+      restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+
+      ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, requestEntity, String.class);
+      log.log(Level.INFO, "RVD/RCOF 响应状态: " + response.getStatusCode());
+      log.log(Level.INFO, "RVD/RCOF 响应内容: " + response.getBody());
+      return response.getBody();
+    } catch (Exception e) {
+      log.log(Level.INFO, "发送RVD/RCOF失败", e);
+      throw new RuntimeException("send rvd failure: " + e.getMessage());
+    }
   }
 
   @Override
@@ -198,7 +312,14 @@ public class SiiApiService implements SiiApi {
       InvoiceGenerator generator = new InvoiceGenerator();
       // 生成发票XML
       // 注意：如果CAF流已经被读取，需要重新设置
-      String signedInvoiceXml = generator.generateInvoiceXML(request.getInvoiceData(), keyStore, certificatePassword, request.getCafFile());
+      String signedInvoiceXml = generator.generateInvoiceXML(
+              request.getInvoiceData(),
+              keyStore,
+              certificatePassword,
+              request.getCafFile(),
+              request.getAliasDocumento(),
+              request.getAliasSetDte()
+      );
       request.setRequestJson(signedInvoiceXml);
       
       // 验证生成的XML中是否包含正确的rutEnvia
@@ -222,24 +343,21 @@ public class SiiApiService implements SiiApi {
       log.log(Level.INFO, "发票XML内容长度: " + signedInvoiceXml.length() + " 字符");
 
       // 创建发送请求对象
-      // 重要：rutCompany 必须与发票 XML 中的 rutEnvia 一致
-      // 从发票数据中提取 rutEnvia，确保与上传参数一致
-      String invoiceRutEnvia = request.getInvoiceData().getRutEnvia();
-      if (invoiceRutEnvia == null || invoiceRutEnvia.trim().isEmpty()) {
-        throw new VeriFactuException("发票数据中的 rutEnvia 不能为空");
+      // 重要：rutCompany 必须与发票 XML 中的 RutEmisor 一致
+      String invoiceRutEmisorForCompany = request.getInvoiceData().getRutEmisor();
+      if (invoiceRutEmisorForCompany == null || invoiceRutEmisorForCompany.trim().isEmpty()) {
+        throw new VeriFactuException("发票数据中的 rutEmisor 不能为空");
       }
-      
-      // 提取 RUT 数字部分
-      String[] rutEnviaParts = invoiceRutEnvia.split("-");
-      if (rutEnviaParts.length != 2) {
-        throw new VeriFactuException("发票数据中的 rutEnvia 格式不正确，应为 XXXXX-XX 格式: " + invoiceRutEnvia);
+
+      String[] rutCompanyParts = invoiceRutEmisorForCompany.split("-");
+      if (rutCompanyParts.length != 2) {
+        throw new VeriFactuException("发票数据中的 rutEmisor 格式不正确，应为 XXXXX-XX 格式: " + invoiceRutEmisorForCompany);
       }
-      
-      // 确保 request 中的 rutCompany 与发票中的 rutEnvia 一致
-      request.setRutCompany("78065438");
-      request.setDvCompany("4");
-      
-      log.log(Level.INFO, "使用发票中的 rutEnvia 设置 rutCompany: " + invoiceRutEnvia);
+
+      request.setRutCompany(rutCompanyParts[0]);
+      request.setDvCompany(rutCompanyParts[1]);
+
+      log.log(Level.INFO, "使用发票中的 rutEmisor 设置 rutCompany: " + invoiceRutEmisorForCompany);
       
       EnvioPost envioPost = createEnvioPost(request);
       // 调用SII API发送发票
@@ -283,8 +401,8 @@ public class SiiApiService implements SiiApi {
       // 创建multipart请求
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-      // 设置Cookie - 确保格式正确
-      headers.set("Authorization", "Bearer " + token.trim());
+      // openapi.yaml: securitySchemes TOKEN 使用 header Cookie: TOKEN=xxxx
+      headers.set("Cookie", "TOKEN=" + token.trim());
       // 设置其他必要的HTTP头
       headers.set("User-Agent", "Mozilla/4.0 (compatible; PROG 1.0; Windows NT)");
       headers.set("Accept", "*/*");
@@ -407,32 +525,65 @@ public class SiiApiService implements SiiApi {
   @Override
   public SiiEnvioStatusResponse queryInvoice(String rut, String dv, Long trackId) {
     try {
-      // 获取令牌
-      String semilla = AuthUtils.getSemilla(apiBaseUrl, rut, restTemplate);
-      // 加载证书
-      KeyStore keyStore;
-      if (certificate!=null){
-        // 加载证书
-        keyStore = CertificateManager.loadPKCS12Certificate(certificate, certificatePassword);
-      }else {
-        // 加载证书
-        keyStore = CertificateManager.loadPKCS12Certificate(certificatePath, certificatePassword);
+      String cachedToken = AuthUtils.getCachedToken(rut);
+      if (cachedToken != null && !cachedToken.trim().isEmpty()) {
+        try {
+          return querySendStatus(cachedToken, rut, dv, trackId.toString());
+        } catch (RuntimeException e) {
+          String msg = e.getMessage();
+          if (msg == null || (!msg.contains("401") && !msg.toLowerCase().contains("no autorizado") && !msg.toLowerCase().contains("autenticado"))) {
+            throw e;
+          }
+        }
       }
-      String signedXml = AuthUtils.signToken(semilla, keyStore, certificatePassword);
-      // 验证令牌
-      if (StringUtils.isEmpty(signedXml)) {
-        throw new VeriFactuException("signedXml is null");
+
+      String token = null;
+      RuntimeException lastTokenError = null;
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        try {
+          String semilla = AuthUtils.getSemilla(apiBaseUrl, rut, restTemplate);
+
+          KeyStore keyStore;
+          if (certificate != null) {
+            keyStore = CertificateManager.loadPKCS12Certificate(certificate, certificatePassword);
+          } else {
+            keyStore = CertificateManager.loadPKCS12Certificate(certificatePath, certificatePassword);
+          }
+
+          String signedXml = AuthUtils.signToken(semilla, keyStore, certificatePassword);
+          if (StringUtils.isEmpty(signedXml)) {
+            throw new VeriFactuException("signedXml is null");
+          }
+
+          token = AuthUtils.getToken(apiBaseUrl, rut, restTemplate, signedXml);
+          if (token == null || token.trim().isEmpty()) {
+            throw new VeriFactuException("token is null");
+          }
+
+          log.log(Level.INFO, "成功获取SII令牌: " + token);
+          break;
+        } catch (RuntimeException e) {
+          lastTokenError = e;
+          if (attempt < 3) {
+            try {
+              Thread.sleep(500L * (1L << (attempt - 1)));
+            } catch (InterruptedException ie) {
+              Thread.currentThread().interrupt();
+              throw new RuntimeException("query failure: token retry interrupted");
+            }
+          }
+        }
       }
-      String token = AuthUtils.getToken(apiBaseUrl, rut, restTemplate, signedXml);
-      // 验证令牌
+
       if (token == null || token.trim().isEmpty()) {
+        if (lastTokenError != null) {
+          throw lastTokenError;
+        }
         throw new VeriFactuException("token is null");
       }
-      log.log(Level.INFO, "成功获取SII令牌: "+token);
 
       // 调用SII API查询发送状态
       SiiEnvioStatusResponse result = querySendStatus(token, rut, dv, trackId.toString());
-
       return result;
     } catch (Exception e) {
       log.log(Level.INFO, "查询电子发票失败", e);
@@ -450,16 +601,19 @@ public class SiiApiService implements SiiApi {
    * @return 响应结果
    */
   public SiiEnvioStatusResponse querySendStatus(String token, String rut, String dv, String trackId) {
+    return doQuerySendStatus(apiBaseUrl, token, rut, dv, trackId);
+  }
+
+  private SiiEnvioStatusResponse doQuerySendStatus(String baseUrl, String token, String rut, String dv, String trackId) {
     try {
-      // 根据OpenAPI规范，查询发送状态应该使用认证服务器（baseUrl），而不是发票服务器（boletaBaseUrl）
       String url = UriComponentsBuilder
-              .fromHttpUrl(apiBaseUrl)
+              .fromHttpUrl(baseUrl)
               .path("/boleta.electronica.envio/{rut}-{dv}-{trackid}")
               .buildAndExpand(rut, dv, trackId)
               .toUriString();
 
       log.log(Level.INFO, "查询发送状态: "+url);
-      log.log(Level.INFO, "使用认证服务器: "+apiBaseUrl);
+      log.log(Level.INFO, "使用查询服务器: "+baseUrl);
       log.log(Level.INFO, "使用令牌: "+token);
 
       HttpHeaders headers = new HttpHeaders();
@@ -468,19 +622,42 @@ public class SiiApiService implements SiiApi {
       HttpEntity<?> request = new HttpEntity<>(headers);
       log.log(Level.INFO, "发送查询请求，请求头: "+headers);
 
-      // 发送请求并处理响应
-      ResponseEntity<String> response;
-      try {
-        // 在需要的地方临时创建
-        RestTemplate restTemplate = new RestTemplate();
-        // 添加 JSON 字符串转换器
-        StringHttpMessageConverter converter = new StringHttpMessageConverter(StandardCharsets.UTF_8);
-        converter.setSupportedMediaTypes(Collections.singletonList(MediaType.APPLICATION_JSON));
-        restTemplate.getMessageConverters().add(converter);
-        response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
-      } catch (org.springframework.web.client.HttpClientErrorException.Unauthorized e) {
-        log.log(Level.INFO, "错误响应: "+e.getResponseBodyAsString());
-        throw new RuntimeException(e.getMessage());
+      ResponseEntity<String> response = null;
+      RuntimeException lastError = null;
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        try {
+          SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+          factory.setConnectTimeout(15000);
+          factory.setReadTimeout(30000);
+          RestTemplate restTemplate = new RestTemplate(factory);
+
+          StringHttpMessageConverter converter = new StringHttpMessageConverter(StandardCharsets.UTF_8);
+          converter.setSupportedMediaTypes(Collections.singletonList(MediaType.APPLICATION_JSON));
+          restTemplate.getMessageConverters().add(converter);
+
+          response = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
+          break;
+        } catch (org.springframework.web.client.HttpClientErrorException.Unauthorized e) {
+          log.log(Level.INFO, "错误响应: " + e.getResponseBodyAsString());
+          throw new RuntimeException(e.getMessage());
+        } catch (ResourceAccessException e) {
+          lastError = new RuntimeException(e.getMessage());
+          if (attempt < 3) {
+            try {
+              Thread.sleep(1000L * attempt);
+            } catch (InterruptedException ie) {
+              Thread.currentThread().interrupt();
+              throw new RuntimeException("查询发送状态失败: interrupted");
+            }
+          }
+        }
+      }
+
+      if (response == null) {
+        if (lastError != null) {
+          throw lastError;
+        }
+        throw new RuntimeException("查询发送状态失败: empty response");
       }
       log.log(Level.INFO, "查询发送状态响应内容: "+response.getBody());
 

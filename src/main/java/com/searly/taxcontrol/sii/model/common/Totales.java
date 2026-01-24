@@ -7,11 +7,14 @@ import javax.xml.bind.annotation.XmlType;
 import java.math.BigDecimal;
 
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(propOrder = {"mntNeto", "iva", "mntAdic", "mntTotal"})
+@XmlType(propOrder = {"mntNeto", "mntExe", "iva", "mntAdic", "mntTotal"})
 public class Totales {
     
     @XmlElement(name = "MntNeto")
     private BigDecimal mntNeto;
+
+    @XmlElement(name = "MntExe")
+    private BigDecimal mntExe;
     
     @XmlElement(name = "IVA")
     private BigDecimal iva;
@@ -25,8 +28,9 @@ public class Totales {
     // 构造函数
     public Totales() {}
     
-    public Totales(BigDecimal mntNeto, BigDecimal iva, BigDecimal mntAdic,BigDecimal mntTotal) {
+    public Totales(BigDecimal mntNeto, BigDecimal mntExe, BigDecimal iva, BigDecimal mntAdic,BigDecimal mntTotal) {
         this.mntNeto = mntNeto;
+        this.mntExe = mntExe;
         this.iva = iva;
         this.mntAdic = mntAdic;
         this.mntTotal = mntTotal;
@@ -40,6 +44,14 @@ public class Totales {
 
     public void setMntNeto(BigDecimal mntNeto) {
         this.mntNeto = mntNeto;
+    }
+
+    public BigDecimal getMntExe() {
+        return this.mntExe;
+    }
+
+    public void setMntExe(BigDecimal mntExe) {
+        this.mntExe = mntExe;
     }
 
     public BigDecimal getIva() {

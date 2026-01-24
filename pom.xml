@@ -136,6 +136,14 @@
       <version>3.8.1</version>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>com.chilkatsoft</groupId>
+      <artifactId>chilkat</artifactId>
+      <version>local</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/chilkat-jdk11-x64/chilkat.jar</systemPath>
+    </dependency>
   </dependencies>
 
   <build>

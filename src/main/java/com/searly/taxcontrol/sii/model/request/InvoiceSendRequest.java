@@ -46,6 +46,16 @@ public class InvoiceSendRequest {
     private InputStream cafFile;
 
     /**
+     * 可选：Documento 签名使用的证书别名（若为空则按 RUT 自动选择）
+     */
+    private String aliasDocumento;
+
+    /**
+     * 可选：SetDTE 签名使用的证书别名（若为空则按 RUT 自动选择）
+     */
+    private String aliasSetDte;
+
+    /**
      * 是否使用测试环境
      * 默认为true（测试环境）
      */
@@ -171,6 +181,22 @@ public class InvoiceSendRequest {
 
     public void setCafFile(InputStream cafFile) {
         this.cafFile = cafFile;
+    }
+
+    public String getAliasDocumento() {
+        return aliasDocumento;
+    }
+
+    public void setAliasDocumento(String aliasDocumento) {
+        this.aliasDocumento = aliasDocumento;
+    }
+
+    public String getAliasSetDte() {
+        return aliasSetDte;
+    }
+
+    public void setAliasSetDte(String aliasSetDte) {
+        this.aliasSetDte = aliasSetDte;
     }
 
     public String getRequestJson() {

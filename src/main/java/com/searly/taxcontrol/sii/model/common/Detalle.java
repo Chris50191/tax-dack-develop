@@ -7,17 +7,23 @@ import javax.xml.bind.annotation.XmlType;
 import java.math.BigDecimal;
 
 @XmlAccessorType(XmlAccessType.FIELD)
-@XmlType(propOrder = {"nroLinDet", "nmbItem", "qtyItem", "prcItem", "montoItem"})
+@XmlType(propOrder = {"nroLinDet", "indExe", "nmbItem", "qtyItem", "unmdItem", "prcItem", "montoItem"})
 public class Detalle {
     
     @XmlElement(name = "NroLinDet", required = true)
     private Integer nroLinDet;
+
+    @XmlElement(name = "IndExe")
+    private Integer indExe;
     
     @XmlElement(name = "NmbItem", required = true)
     private String nmbItem;
     
     @XmlElement(name = "QtyItem")
     private BigDecimal qtyItem;
+
+    @XmlElement(name = "UnmdItem")
+    private String unmdItem;
 
     @XmlElement(name = "PrcItem")
     private BigDecimal prcItem;
@@ -51,6 +57,14 @@ public class Detalle {
     public void setNroLinDet(Integer nroLinDet) {
         this.nroLinDet = nroLinDet;
     }
+
+    public Integer getIndExe() {
+        return indExe;
+    }
+
+    public void setIndExe(Integer indExe) {
+        this.indExe = indExe;
+    }
     
     public String getNmbItem() {
         return nmbItem;
@@ -66,6 +80,14 @@ public class Detalle {
 
     public void setQtyItem(BigDecimal qtyItem) {
         this.qtyItem = qtyItem;
+    }
+
+    public String getUnmdItem() {
+        return unmdItem;
+    }
+
+    public void setUnmdItem(String unmdItem) {
+        this.unmdItem = unmdItem;
     }
 
     public BigDecimal getPrcItem() {
