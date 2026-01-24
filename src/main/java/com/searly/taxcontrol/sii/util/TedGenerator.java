@@ -32,7 +32,6 @@ public class TedGenerator {
     public static void insertTed(Document doc, InputStream cafFile) throws Exception {
         // 加载 CAF
         Document cafDoc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(cafFile);
-        Node cafNode = doc.importNode(cafDoc.getElementsByTagName("CAF").item(0), true);
 
         // === 从 CAF 解析私钥 ===
         // 检查 RSASK 是否存在
@@ -49,14 +48,22 @@ public class TedGenerator {
         // 获取 Documento
         Element documento = (Element) doc.getElementsByTagName("Documento").item(0);
 
+        String ns = documento.getNamespaceURI();
+
+        Element cafEl = (Element) cafDoc.getElementsByTagName("CAF").item(0);
+        if (cafEl == null) {
+            throw new IllegalArgumentException("CAF 文件缺少 CAF 节点");
+        }
+        Node cafNode = importElementIntoNamespace(doc, cafEl, ns);
+
         // 从 documento 提取字段
-        String RE = getText(documento, "RUTEmisor");
-        String TD = getText(documento, "TipoDTE");
-        String F = getText(documento, "Folio");
-        String FE = getText(documento, "FchEmis");
-        String RR = getText(documento, "RUTRecep");
-        String RSR = getText(documento, "RznSocRecep");
-        String MNT = getText(documento, "MntTotal");
+        String RE = safeTrim(getText(documento, "RUTEmisor"));
+        String TD = safeTrim(getText(documento, "TipoDTE"));
+        String F = safeTrim(getText(documento, "Folio"));
+        String FE = safeTrim(getText(documento, "FchEmis"));
+        String RR = safeTrim(getText(documento, "RUTRecep"));
+        String RSR = safeTrim(getText(documento, "RznSocRecep"));
+        String MNT = safeTrim(getText(documento, "MntTotal"));
         
         // IT1 应该从第一个 Detalle 节点获取
         NodeList detalleList = documento.getElementsByTagName("Detalle");
@@ -64,11 +71,9 @@ public class TedGenerator {
             throw new IllegalArgumentException("发票必须至少包含一个商品项");
         }
         Element firstDetalle = (Element) detalleList.item(0);
-        String IT1 = getText(firstDetalle, "NmbItem");
+        String IT1 = safeTrim(getText(firstDetalle, "NmbItem"));
         
-        String ts = getText(documento, "TmstFirma");
-
-        String ns = documento.getNamespaceURI();
+        String ts = safeTrim(getText(documento, "TmstFirma"));
 
         Element TED = doc.createElementNS(ns, "TED");
         TED.setAttribute("version", "1.0");
@@ -101,6 +106,42 @@ public class TedGenerator {
         sig.update(ddBytes);
         String frmtBase64 = Base64.getEncoder().encodeToString(sig.sign());
         FRMT.setTextContent(frmtBase64);
+    }
+
+    private static Node importElementIntoNamespace(Document targetDoc, Element src, String ns) {
+        if (src == null) return null;
+
+        String local = src.getLocalName();
+        String qName = (local != null && !local.isEmpty()) ? local : src.getNodeName();
+        Element out = targetDoc.createElementNS(ns, qName);
+
+        // copy attributes
+        if (src.hasAttributes()) {
+            for (int i = 0; i < src.getAttributes().getLength(); i++) {
+                Node a = src.getAttributes().item(i);
+                if (a == null) continue;
+                // CAF 文件通常无命名空间属性，这里按原样复制
+                out.setAttribute(a.getNodeName(), a.getNodeValue());
+            }
+        }
+
+        NodeList children = src.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node c = children.item(i);
+            if (c == null) continue;
+            switch (c.getNodeType()) {
+                case Node.ELEMENT_NODE:
+                    out.appendChild(importElementIntoNamespace(targetDoc, (Element) c, ns));
+                    break;
+                case Node.TEXT_NODE:
+                    out.appendChild(targetDoc.createTextNode(c.getNodeValue()));
+                    break;
+                default:
+                    // ignore others
+                    break;
+            }
+        }
+        return out;
     }
 
     private static PublicKey buildRsaPublicKey(String modulusB64, String exponentB64) throws Exception {
@@ -273,6 +314,10 @@ public class TedGenerator {
             throw new IllegalArgumentException("缺少必需的TED字段: " + tag);
         }
         return nodes.item(0).getTextContent();
+    }
+
+    private static String safeTrim(String v) {
+        return v == null ? null : v.trim();
     }
 
     // 添加子元素

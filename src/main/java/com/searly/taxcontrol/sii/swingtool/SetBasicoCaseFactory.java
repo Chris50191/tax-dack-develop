@@ -108,11 +108,11 @@ public class SetBasicoCaseFactory {
         List<InvoiceData.Product> products = new ArrayList<>();
         for (Line l : lines) {
             InvoiceData.Product p = new InvoiceData.Product();
-            p.setNmbItem(l.name);
+            p.setNmbItem(l.name == null ? null : l.name.trim());
             p.setQtyItem(new BigDecimal(l.qty));
 
             if (l.unmdItem != null && !l.unmdItem.trim().isEmpty()) {
-                p.setUnmdItem(l.unmdItem);
+                p.setUnmdItem(l.unmdItem.trim());
             }
 
             if (l.exento) {

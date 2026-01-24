@@ -6,6 +6,7 @@ import com.chilkatsoft.CkCert;
 import com.chilkatsoft.CkGlobal;
 import com.chilkatsoft.CkPrivateKey;
 import com.chilkatsoft.CkStringBuilder;
+import com.chilkatsoft.CkXmlDSig;
 import com.chilkatsoft.CkXmlDSigGen;
 import java.io.*;
 import java.math.BigInteger;
@@ -22,6 +23,7 @@ import java.security.cert.X509Certificate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,11 +54,13 @@ import javax.xml.crypto.dsig.keyinfo.KeyInfoFactory;
 import javax.xml.crypto.dsig.keyinfo.KeyValue;
 import javax.xml.crypto.dsig.keyinfo.X509Data;
 import javax.xml.crypto.dsig.spec.C14NMethodParameterSpec;
+import javax.xml.crypto.dsig.spec.TransformParameterSpec;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
 import org.apache.xml.security.Init;
+import org.apache.xml.security.transforms.Transforms;
 import org.apache.xml.security.utils.Constants;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1OctetString;
@@ -302,39 +306,39 @@ public class InvoiceGenerator {
         gen.put_SignedInfoCanonAlg(signedInfoCanonAlg);
         gen.put_SignedInfoDigestMethod("sha1");
 
-        boolean wantSetRefIdAttr = Boolean.parseBoolean(System.getProperty("chilkat.trySetRefIdAttr", "true"));
+        // 门户可上传的最小结构：Reference 下仅 1 个 Transform，且通常为 C14N。
+        // 这里用 refCanonAlg 控制生成的 Transform（默认为 C14N），transformAlg 默认空（避免出现第二类 Transform）。
+        String refCanonAlg = System.getProperty("chilkat.refCanon", "C14N");
+        String transformAlg = System.getProperty("chilkat.transformAlg", "");
+        boolean okRef = gen.AddSameDocRef(sameDocRefId, "sha1", refCanonAlg, transformAlg, "");
+        if (!okRef) {
+            throw new IllegalStateException("Chilkat AddSameDocRef failed: " + gen.lastErrorText());
+        }
+
+        // 注意：SII 门户 schema 不允许 <Reference> 出现 Id 属性。
+        // Chilkat 的 SetRefIdAttr 在某些版本/场景下会导致 <Reference Id="..."> 输出，进而被门户拒绝。
+        // 因此默认关闭；如需对照实验再显式开启。
+        boolean wantSetRefIdAttr = Boolean.parseBoolean(System.getProperty("chilkat.trySetRefIdAttr", "false"));
         if (wantSetRefIdAttr) {
-            // Chilkat 文档：SetRefIdAttr(String uri_or_id, String value)
+            // Chilkat 文档：SetRefIdAttr(String uri_or_id, String idAttrName)
             // 用于指定某个 Reference 所使用的 ID 属性名（默认是 "Id"，而 SII 使用 "ID"）。
             String idAttrName = System.getProperty("chilkat.refIdAttrName", "ID");
             boolean setOk = false;
             try {
-                boolean ok1 = gen.SetRefIdAttr(sameDocRefId, idAttrName);
-                if (ok1) {
-                    System.out.println("Chilkat SetRefIdAttr 成功: (" + sameDocRefId + "," + idAttrName + ")");
-                    setOk = true;
-                }
+                setOk = gen.SetRefIdAttr(sameDocRefId, idAttrName);
             } catch (Exception ignored) {
+                setOk = false;
             }
             if (!setOk) {
                 try {
-                    boolean ok2 = gen.SetRefIdAttr("#" + sameDocRefId, idAttrName);
-                    if (ok2) {
-                        System.out.println("Chilkat SetRefIdAttr 成功: (#" + sameDocRefId + "," + idAttrName + ")");
-                        setOk = true;
-                    }
+                    setOk = gen.SetRefIdAttr("#" + sameDocRefId, idAttrName);
                 } catch (Exception ignored) {
+                    setOk = false;
                 }
             }
             if (!setOk) {
                 System.out.println("Chilkat SetRefIdAttr 未成功设置(忽略继续): " + gen.lastErrorText());
             }
-        }
-
-        String refCanonAlg = System.getProperty("chilkat.refCanon", "C14N");
-        boolean okRef = gen.AddSameDocRef(sameDocRefId, "sha1", refCanonAlg, "", "");
-        if (!okRef) {
-            throw new IllegalStateException("Chilkat AddSameDocRef failed: " + gen.lastErrorText());
         }
 
         CkPrivateKey ckPriv = new CkPrivateKey();
@@ -377,6 +381,38 @@ public class InvoiceGenerator {
         }
 
         return sb.getAsString();
+    }
+
+    private static void validateSignaturesWithChilkat(String xml) {
+        try {
+            ensureChilkatLoaded();
+            if (xml == null || xml.trim().isEmpty()) {
+                System.out.println("Chilkat验签：XML为空，跳过");
+                return;
+            }
+
+            CkXmlDSig dsig = new CkXmlDSig();
+            dsig.put_VerboseLogging(false);
+
+            boolean loaded = dsig.LoadSignature(xml);
+            if (!loaded) {
+                System.out.println("Chilkat验签：LoadSignature失败");
+                System.out.println(dsig.lastErrorText());
+                return;
+            }
+
+            int numSignatures = dsig.get_NumSignatures();
+            for (int i = 0; i < numSignatures; i++) {
+                dsig.put_Selector(i);
+                boolean ok = dsig.VerifySignature(true);
+                System.out.println("Chilkat验签[" + i + "]: " + (ok ? "有效" : "无效"));
+                if (!ok) {
+                    System.out.println(dsig.lastErrorText());
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Chilkat验签异常: " + e.getMessage());
+        }
     }
 
     private static String buildKeyInfoXml(X509Certificate cert) throws Exception {
@@ -742,11 +778,13 @@ public class InvoiceGenerator {
             boolean matchEmisor = emisorRut != null && !emisorRut.trim().isEmpty() && certRutEmisor.equalsIgnoreCase(emisorRut.trim());
             if (!matchEmisor) {
                 System.out.println("警告：Documento 签名证书RUT与 RutEmisor 不一致: certRut=" + certRutEmisor + ", rutEmisor=" + emisorRut);
-                boolean allowMismatch = Boolean.parseBoolean(System.getProperty("sii.allowSignerRutMismatch", "false"));
-                if (!allowMismatch) {
-                    throw new IllegalStateException("Documento 签名证书RUT(" + certRutEmisor + ") 与 RutEmisor(" + emisorRut + ") 不一致。SII 通常会以‘Error en Firma’拒收。" +
-                            "请为 Documento 提供 RUT=" + emisorRut + " 的证书（或在 SII 认证环境完成授权/代表关系）。" +
-                            "如需临时放行对照实验，可加 -Dsii.allowSignerRutMismatch=true");
+                boolean strictMatch = Boolean.parseBoolean(System.getProperty("sii.strictSignerRutMatch", "false"));
+                if (strictMatch) {
+                    throw new IllegalStateException(
+                            "Documento 签名证书RUT(" + certRutEmisor + ") 与 RutEmisor(" + emisorRut + ") 不一致。" +
+                                    "当前已启用严格校验(-Dsii.strictSignerRutMatch=true)，因此中断生成/发送。" +
+                                    "若你使用的是已对企业完成授权的法人个人证书，请关闭严格校验。"
+                    );
                 }
             }
         }
@@ -759,7 +797,14 @@ public class InvoiceGenerator {
             }
         }
 
-        String signer = System.getProperty("sii.signer", "");
+        // 底线约定：本项目仅使用 Chilkat 生成 XMLDSIG（Documento + SetDTE 两级签名）。
+        // 若确需切换其它签名器，仅用于对照实验，需显式传入 -Dsii.allowNonChilkatSigner=true
+        String signer = System.getProperty("sii.signer", "chilkat");
+        boolean allowNonChilkatSigner = Boolean.parseBoolean(System.getProperty("sii.allowNonChilkatSigner", "false"));
+        if (!allowNonChilkatSigner && (signer == null || !signer.trim().equalsIgnoreCase("chilkat"))) {
+            throw new IllegalStateException("签名器已被限制为 Chilkat。如需对照实验，请设置 -Dsii.allowNonChilkatSigner=true 且显式指定 -Dsii.signer=...。");
+        }
+
         if (signer != null && signer.trim().equalsIgnoreCase("xmlsec")) {
             String distro = System.getProperty("wsl.distro", "Ubuntu");
 
@@ -903,9 +948,8 @@ public class InvoiceGenerator {
                     System.getProperty("chilkat.behaviors.inner", "IndentedSignature")
             );
 
-            System.out.println("Chilkat 内层签名完成，开始中间验签(仅用于调试对照)");
-            validateSignaturesAfterSerialize(xmlAfterDocSig);
-            validateSignaturesWithSantuario(xmlAfterDocSig);
+            System.out.println("Chilkat 内层签名完成，开始 Chilkat 本地验签");
+            validateSignaturesWithChilkat(xmlAfterDocSig);
 
             String xmlAfterSetSig = signXmlWithChilkat(
                     xmlAfterDocSig,
@@ -918,8 +962,14 @@ public class InvoiceGenerator {
             );
 
             String finalXml = saveXmlStringRaw(xmlAfterSetSig, filePrefix + "_05_最终XML_发送.xml");
-            validateSignaturesAfterSerialize(finalXml);
-            validateSignaturesWithSantuario(finalXml);
+
+            validateSignaturesWithChilkat(finalXml);
+
+            boolean extraVerify = Boolean.parseBoolean(System.getProperty("sii.extraVerify", "false"));
+            if (extraVerify) {
+                validateSignaturesAfterSerialize(finalXml);
+                validateSignaturesWithSantuario(finalXml);
+            }
             return finalXml;
         }
 
@@ -1425,7 +1475,10 @@ public class InvoiceGenerator {
 
         target.setIdAttribute("ID", true);
 
-        Reference ref = fac.newReference("#" + idValue, fac.newDigestMethod(DigestMethod.SHA1, null), null, null, null);
+        List<javax.xml.crypto.dsig.Transform> transforms = Collections.singletonList(
+                fac.newTransform(javax.xml.crypto.dsig.Transform.ENVELOPED, (TransformParameterSpec) null)
+        );
+        Reference ref = fac.newReference("#" + idValue, fac.newDigestMethod(DigestMethod.SHA1, null), transforms, null, null);
         SignedInfo si = fac.newSignedInfo(
                 fac.newCanonicalizationMethod(CanonicalizationMethod.INCLUSIVE, (C14NMethodParameterSpec) null),
                 fac.newSignatureMethod(javax.xml.crypto.dsig.SignatureMethod.RSA_SHA1, null),
@@ -1484,7 +1537,9 @@ public class InvoiceGenerator {
             parent.appendChild(sig.getElement());
         }
 
-        sig.addDocument("#" + idValue, null, org.apache.xml.security.utils.Constants.ALGO_ID_DIGEST_SHA1);
+        Transforms transforms = new Transforms(doc);
+        transforms.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE);
+        sig.addDocument("#" + idValue, transforms, org.apache.xml.security.utils.Constants.ALGO_ID_DIGEST_SHA1);
 
         // KeyInfo: 按 SII Schema 顺序输出 KeyValue -> X509Data（仅放 leaf 证书，避免 Schema: LSX-00204）
         if (certChain != null && !certChain.isEmpty() && certChain.get(0) != null) {
@@ -1528,7 +1583,9 @@ public class InvoiceGenerator {
             parent.appendChild(sig.getElement());
         }
 
-        sig.addDocument("#" + idValue, null, org.apache.xml.security.utils.Constants.ALGO_ID_DIGEST_SHA1);
+        Transforms transforms = new Transforms(doc);
+        transforms.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE);
+        sig.addDocument("#" + idValue, transforms, org.apache.xml.security.utils.Constants.ALGO_ID_DIGEST_SHA1);
 
         // KeyInfo: 按 SII Schema 顺序输出 KeyValue -> X509Data（仅放 leaf 证书，避免 Schema: LSX-00204）
         if (certChain != null && !certChain.isEmpty() && certChain.get(0) != null) {
@@ -1550,7 +1607,10 @@ public class InvoiceGenerator {
         if (idValue == null || idValue.isEmpty()) throw new IllegalArgumentException(tagName + " 缺少 ID 属性");
         target.setIdAttribute("ID", true);
 
-        Reference ref = fac.newReference("#" + idValue, fac.newDigestMethod(DigestMethod.SHA1, null), null, null, null);
+        List<javax.xml.crypto.dsig.Transform> transforms = Collections.singletonList(
+                fac.newTransform(javax.xml.crypto.dsig.Transform.ENVELOPED, (TransformParameterSpec) null)
+        );
+        Reference ref = fac.newReference("#" + idValue, fac.newDigestMethod(DigestMethod.SHA1, null), transforms, null, null);
         SignedInfo si = fac.newSignedInfo(
                 fac.newCanonicalizationMethod(CanonicalizationMethod.INCLUSIVE, (C14NMethodParameterSpec) null),
                 fac.newSignatureMethod(javax.xml.crypto.dsig.SignatureMethod.RSA_SHA1, null),
@@ -1639,8 +1699,13 @@ public class InvoiceGenerator {
         return new Encabezado(idDoc, emisor, receptor, totales);
     }
 
-    public String generateCurrentTimestamp() { return LocalDateTime.now().format(DATETIME_FORMATTER); }
-    public String generateCurrentDate() { return LocalDateTime.now().format(DATE_FORMATTER); }
+    public String generateCurrentTimestamp() {
+        return ZonedDateTime.now(CHILE_DEFAULT_ZONE).format(DATETIME_FORMATTER);
+    }
+
+    public String generateCurrentDate() {
+        return ZonedDateTime.now(CHILE_DEFAULT_ZONE).format(DATE_FORMATTER);
+    }
 
     public static String generateSetDteIdWithChileTime(String rut) {
         validateRut(rut);
@@ -1657,7 +1722,7 @@ public class InvoiceGenerator {
 
     private static String generateFilePrefix(InvoiceData invoiceData) {
         String folio = invoiceData.getFolio() != null ? invoiceData.getFolio() : "unknown";
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String timestamp = ZonedDateTime.now(CHILE_DEFAULT_ZONE).format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         return String.format("invoice_%s_%s", folio, timestamp);
     }
 

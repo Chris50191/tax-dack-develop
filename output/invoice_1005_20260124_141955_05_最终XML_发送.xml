@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
-<EnvioBOLETA xmlns="http://www.sii.cl/SiiDte" version="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte EnvioBOLETA_v11.xsd"><SetDTE ID="BOLETA_ENVIO_78065438-4_20260124" xmlns="http://www.sii.cl/SiiDte"><Caratula version="1.0"><RutEmisor>78065438-4</RutEmisor><RutEnvia>24529296-1</RutEnvia><RutReceptor>60803000-K</RutReceptor><FchResol>2026-01-23</FchResol><NroResol>0</NroResol><TmstFirmaEnv>2026-01-24T12:01:03</TmstFirmaEnv><SubTotDTE><TpoDTE>39</TpoDTE><NroDTE>1</NroDTE></SubTotDTE></Caratula><DTE version="1.0"><Documento ID="BoletaElectronica_SET_CASO-1_5006" xmlns="http://www.sii.cl/SiiDte"><Encabezado><IdDoc><TipoDTE>39</TipoDTE><Folio>5006</Folio><FchEmis>2026-01-24</FchEmis><IndServicio>3</IndServicio></IdDoc><Emisor><RUTEmisor>78065438-4</RUTEmisor><RznSocEmisor>XIAOQI SPA</RznSocEmisor><GiroEmisor>VENTA AL POR MENOR EN COMERCIO NO ESPECIALIZADO</GiroEmisor><DirOrigen>SAN ALFONSO 637</DirOrigen><CmnaOrigen>SANTIAGO</CmnaOrigen><CiudadOrigen>SANTIAGO</CiudadOrigen></Emisor><Receptor><RUTRecep>60803000-K</RUTRecep><RznSocRecep>SII</RznSocRecep></Receptor><Totales><MntNeto>25042</MntNeto><IVA>4758</IVA><MntTotal>29800</MntTotal></Totales></Encabezado><Detalle><NroLinDet>1</NroLinDet><NmbItem>Cambio de aceite</NmbItem><QtyItem>1</QtyItem><PrcItem>19900</PrcItem><MontoItem>19900</MontoItem></Detalle><Detalle><NroLinDet>2</NroLinDet><NmbItem>Alineacion y balanceo</NmbItem><QtyItem>1</QtyItem><PrcItem>9900</PrcItem><MontoItem>9900</MontoItem></Detalle><Referencia><NroLinRef>1</NroLinRef><CodRef>SET</CodRef><RazonRef>CASO-1</RazonRef></Referencia><TED version="1.0"><DD><RE>78065438-4</RE><TD>39</TD><F>5006</F><FE>2026-01-24</FE><RR>60803000-K</RR><RSR>SII</RSR><MNT>29800</MNT><IT1>Cambio de aceite</IT1><CAF version="1.0"><DA><RE>78065438-4</RE><RS>XIAOQI SPA</RS><TD>39</TD><RNG><D>5001</D><H>5010</H></RNG><FA>2026-01-22</FA><RSAPK><M>pQA3TlxYPJ3u9E6KNI3RZUHUxHdAZhNtMTY0W+3DpG3H3Ejep7wUS6WWctbc033T8kxFr7DuPCi+w3QZgDQ7QQ==</M><E>Aw==</E></RSAPK><IDK>100</IDK></DA><FRMA algoritmo="SHA1withRSA">M+F/SUVhhEO5kmiTL6OmETuXsQ1q1lsb/GLLms3MHlH3CIlrfhnjfi/fq7+H5c0VYAPZ2P1QvNltQSds3IYHUg==</FRMA></CAF><TSTED>2026-01-24T12:01:03</TSTED></DD><FRMT algoritmo="SHA1withRSA">CxtSJxbW+kQNHqGhrwQz2nY3K2oUmE6Fe4VyfXUPltjOJtL1dTiilMxsqQiWoCuiKKsPmWb9evSdQveUvk3E1A==</FRMT></TED><TmstFirma>2026-01-24T12:01:03</TmstFirma></Documento><Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+<EnvioBOLETA xmlns="http://www.sii.cl/SiiDte" version="1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte EnvioBOLETA_v11.xsd"><SetDTE ID="BOLETA_ENVIO_78065438-4_20260124" xmlns="http://www.sii.cl/SiiDte"><Caratula version="1.0"><RutEmisor>78065438-4</RutEmisor><RutEnvia>24529296-1</RutEnvia><RutReceptor>60803000-K</RutReceptor><FchResol>2026-01-23</FchResol><NroResol>0</NroResol><TmstFirmaEnv>2026-01-24T14:19:55</TmstFirmaEnv><SubTotDTE><TpoDTE>39</TpoDTE><NroDTE>1</NroDTE></SubTotDTE></Caratula><DTE version="1.0"><Documento ID="BoletaElectronica_SET_CASO-1_1005" xmlns="http://www.sii.cl/SiiDte"><Encabezado><IdDoc><TipoDTE>39</TipoDTE><Folio>1005</Folio><FchEmis>2026-01-24</FchEmis><IndServicio>3</IndServicio></IdDoc><Emisor><RUTEmisor>78065438-4</RUTEmisor><RznSocEmisor>XIAOQI SPA</RznSocEmisor><GiroEmisor>VENTA AL POR MENOR EN COMERCIO NO ESPECIALIZADO</GiroEmisor><DirOrigen>SAN ALFONSO 637</DirOrigen><CmnaOrigen>SANTIAGO</CmnaOrigen><CiudadOrigen>SANTIAGO</CiudadOrigen></Emisor><Receptor><RUTRecep>60803000-K</RUTRecep><RznSocRecep>SII</RznSocRecep></Receptor><Totales><MntNeto>25042</MntNeto><IVA>4758</IVA><MntTotal>29800</MntTotal></Totales></Encabezado><Detalle><NroLinDet>1</NroLinDet><NmbItem>Cambio de aceite</NmbItem><QtyItem>1</QtyItem><PrcItem>19900</PrcItem><MontoItem>19900</MontoItem></Detalle><Detalle><NroLinDet>2</NroLinDet><NmbItem>Alineacion y balanceo</NmbItem><QtyItem>1</QtyItem><PrcItem>9900</PrcItem><MontoItem>9900</MontoItem></Detalle><Referencia><NroLinRef>1</NroLinRef><CodRef>SET</CodRef><RazonRef>CASO-1</RazonRef></Referencia><TED version="1.0"><DD><RE>78065438-4</RE><TD>39</TD><F>1005</F><FE>2026-01-24</FE><RR>60803000-K</RR><RSR>SII</RSR><MNT>29800</MNT><IT1>Cambio de aceite</IT1><CAF version="1.0"><DA><RE>78065438-4</RE><RS>XIAOQI SPA</RS><TD>39</TD><RNG><D>1</D><H>5000</H></RNG><FA>2025-09-09</FA><RSAPK><M>1VtYE27byBEz6IS7YNsHWeOPpENMkozCbfH6BOT0Y0p/17f0ncZf5etsYoDp7nqq8JkHS5TSdjyjccPTsBQVKw==</M><E>Aw==</E></RSAPK><IDK>100</IDK></DA><FRMA algoritmo="SHA1withRSA">ZoCbF7gcrqqiXP30G3l1k8uZMg8jrwzIAgAy35qYaVxyWB/afuJsGDDZln8AMMIYh1cTTP2LD+Ex0b3DrqZJww==</FRMA></CAF><TSTED>2026-01-24T14:19:55</TSTED></DD><FRMT algoritmo="SHA1withRSA">jlC8rt3bBZi+T8IKlOh50s4nqVYN6x1JYW1GW9Uql2fWWqKvsEf05qKgD7FMMtJQRppfi2WxSD2Ras+LxYztgQ==</FRMT></TED><TmstFirma>2026-01-24T14:19:55</TmstFirma></Documento><Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
 <SignedInfo>
 <CanonicalizationMethod
  Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
 <SignatureMethod
  Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
-<Reference URI="#BoletaElectronica_SET_CASO-1_5006">
+<Reference URI="#BoletaElectronica_SET_CASO-1_1005">
 <Transforms>
 <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
 </Transforms>
 <DigestMethod
  Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-<DigestValue>eX0VCq4aHgJIcc1+81hi2WTkd10=</DigestValue>
+<DigestValue>IKvDjs0v1u07JHTL1yQPQl7/M3M=</DigestValue>
 </Reference>
 </SignedInfo>
 <SignatureValue>
-Hs5cK1WM/bpo5H2Y3kBe30sS4BzjFarNtSCqMP95PTokdL2YL684O4u8eiB8jM4rVWdqol/B
-doCNYC+y6wkJwMaVFZ1ZDdIsNq+deLRFsMd/WHDTgeqo4jRD8sjhiqfW7tCK57h6XBG4/1HX
-B7yRy2qi91EoLL+EXfiQHbIyGF2YgDQISD6+aCRDxRZAVZzioBvVaW5vkkeB3SA/6Fiac53n
-SgnH4YrjS3rS2j+SnzlJlSTb+Ytv4ee6hcH2d2RepAm09XdWhajRdVOIZ913LCG+PyzV9TBq
-mTY/aEWrYLwOai1Ej/Q0odBD5gXmRWmTWca2yJd6jBHs37/8UEPMGg==
+T1+z497xOgXrNN18YBqO7t8yeYIdj0Ur/znbHGb8EPX0QZlChqp2zz/Mu26e3V4yHObBCJSx
+Ys6LIOAgmwLtfv2HP4tIodzAMGrCiE6XbUufYUzGSB+cKxTBSJyzBTjjMpF7pOgoRd8VIyS7
+yOVOxeqERClTQv7XT4KShgcyK/mlD45/OO6wp9atkdZ3SNEFdG4MyTTquQKfuaglEwUNcNtZ
+Mbsk9SMgQFRJMMvlR6knBpd3+2+mptFjiy7mOWtDpHp4xFH5VT6QjSMFjmdI6wp1RyFwUG+x
+Nbw44GeqUgd1/nO9wgZSV5/zweBcU2SMctt43jqmdmjOEDdXJ+cK1g==
 </SignatureValue><KeyInfo><KeyValue><RSAKeyValue><Modulus>mY5qLHnpJpQm/GiFIGAvoOvAnK8nzguSaTpMs/UH2z7VX+4bk9HC0yQJXE+aYDLsJoyWQB+52MfRr/JHKk149PzWMCf2TE8EGCjzO+TNGNIh1AF/cVrX2ijLfqUWsXjLgjorgc0rbs7Udct4oFxInHLtConMX/ntAFgPN/aRaImJNgMTXgctxT1PfOPLVyM6ionJjIm4/tgE/kAX6jeR5PLjnlrMf01NlYitghAeqJDO8vBbrl4IcOLk5vw9uZD8nQ7C4By7b9e07aBzboFTnj3sc7P8n09s3IEo4J6vVHHTl2+bZu4XCIXtuAtrjK9W9+c6eLHOfGfDrhtcXkvOxQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue></KeyValue><X509Data><X509Certificate>MIIGuDCCBaCgAwIBAgIDBb1kMA0GCSqGSIb3DQEBCwUAMIGmMQswCQYDVQQGEwJD
 TDEYMBYGA1UEChMPQWNlcHRhLmNvbSBTLkEuMUgwRgYDVQQDEz9BY2VwdGEuY29t
 IEF1dG9yaWRhZCBDZXJ0aWZpY2Fkb3JhIENsYXNlIDMgUGVyc29uYSBOYXR1cmFs
@@ -67,15 +67,15 @@ J2DV3P+tw9Bh4laNDLjJwfav8QOpRm6MrNdaitg8+UvGdPNPmB3mXfHHa3E=</X509Certificate></
 </Transforms>
 <DigestMethod
  Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-<DigestValue>x0AwzTEKOPZCWbySs7q8jatkoQU=</DigestValue>
+<DigestValue>PhUpC5Fx1eVV3mR32/qbrbPzMAU=</DigestValue>
 </Reference>
 </SignedInfo>
 <SignatureValue>
-lX19JdUhFCK+X8FltiqYUKjOFTuCgpgBbZnHNJ4+todu2QwWh2D1PvGWlUJkYoYq2t3/C2sS
-lqWE+bN3JnSLBk5UpBa7ntrueo0P7Km5ntntqvPUqf4XlbVve8y4Upd7/mfBNdx6VybW6Mtw
-eaCv4hKAa9V+2lUEZWwtEnfI6CS68KpUiYtMFz6d37ocDPw6Hj5VnrFbkQsGCujYq096PwUc
-bUePTsbkZ2FMgFEMdiPRAL7JtyZXEYjujwwBV/jrOq23Z/W+8/MUd1ugxmQNkOkoKSwDZUjK
-9p0RMFslnCHu5L9c+2BhdYcVzqGc/BMUWDNsZPKq/Fx55fBteYfT2w==
+ggvWK1873kBEvjXyEjY+wHoylw4KMa+NP6RnYdgX32/z9ngsQzwxOaohpnCPPzQhNNilGAyw
+8TLWImQcGl1O+fiFfMO22/JxbzH+85s+7HDT1U4+6ka6XdSPstGGVbeoRkd/6kQGYlwElG9x
+OHa82bJvlcpx/aYdjbONFeDBgzWJrEcpl8IISn6UAwnIJLHWt7AUUFxfNjjMTFKp6ALi+fye
+HXkjE2T/l3SVIpjvijtbVitQU8wVjQkq6ej8Y4dMXF6pmUIrye9uZKs+PRV5mtJ3PnEuHwzz
+AjQNEQnAlOUXG828jEfzuT9RGf3gn2jPBrYq2HFWkdKrwOjn/Ffn2A==
 </SignatureValue><KeyInfo><KeyValue><RSAKeyValue><Modulus>mY5qLHnpJpQm/GiFIGAvoOvAnK8nzguSaTpMs/UH2z7VX+4bk9HC0yQJXE+aYDLsJoyWQB+52MfRr/JHKk149PzWMCf2TE8EGCjzO+TNGNIh1AF/cVrX2ijLfqUWsXjLgjorgc0rbs7Udct4oFxInHLtConMX/ntAFgPN/aRaImJNgMTXgctxT1PfOPLVyM6ionJjIm4/tgE/kAX6jeR5PLjnlrMf01NlYitghAeqJDO8vBbrl4IcOLk5vw9uZD8nQ7C4By7b9e07aBzboFTnj3sc7P8n09s3IEo4J6vVHHTl2+bZu4XCIXtuAtrjK9W9+c6eLHOfGfDrhtcXkvOxQ==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue></KeyValue><X509Data><X509Certificate>MIIGuDCCBaCgAwIBAgIDBb1kMA0GCSqGSIb3DQEBCwUAMIGmMQswCQYDVQQGEwJD
 TDEYMBYGA1UEChMPQWNlcHRhLmNvbSBTLkEuMUgwRgYDVQQDEz9BY2VwdGEuY29t
 IEF1dG9yaWRhZCBDZXJ0aWZpY2Fkb3JhIENsYXNlIDMgUGVyc29uYSBOYXR1cmFs
