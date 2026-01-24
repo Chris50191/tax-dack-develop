@@ -54,7 +54,10 @@ public class TedGenerator {
         if (cafEl == null) {
             throw new IllegalArgumentException("CAF 文件缺少 CAF 节点");
         }
-        Node cafNode = importElementIntoNamespace(doc, cafEl, ns);
+        // CAF 文件本身通常无命名空间，并包含 FRMA（SII 对 DA 的签名）。
+        // 这里必须保持 CAF 的“无命名空间”语义，否则 SII 侧可能判 timbre 无效。
+        // 将 CAF 作为无命名空间节点导入到 DD 下，序列化时会自动产生 xmlns="" 来取消父级默认命名空间。
+        Node cafNode = doc.importNode(cafEl, true);
 
         // 从 documento 提取字段
         String RE = safeTrim(getText(documento, "RUTEmisor"));
@@ -71,7 +74,7 @@ public class TedGenerator {
             throw new IllegalArgumentException("发票必须至少包含一个商品项");
         }
         Element firstDetalle = (Element) detalleList.item(0);
-        String IT1 = safeTrim(getText(firstDetalle, "NmbItem"));
+        String IT1 = normalizeIt1(getText(firstDetalle, "NmbItem"));
         
         String ts = safeTrim(getText(documento, "TmstFirma"));
 
@@ -100,7 +103,7 @@ public class TedGenerator {
         Node tmstFirmaNode = documento.getElementsByTagName("TmstFirma").item(0);
         documento.insertBefore(TED, tmstFirmaNode);
 
-        byte[] ddBytes = canonicalizeInclusive(DD);
+        byte[] ddBytes = canonicalizeInclusiveIso88591Bytes(DD);
         Signature sig = Signature.getInstance("SHA1withRSA");
         sig.initSign(privateKey);
         sig.update(ddBytes);
@@ -108,40 +111,24 @@ public class TedGenerator {
         FRMT.setTextContent(frmtBase64);
     }
 
-    private static Node importElementIntoNamespace(Document targetDoc, Element src, String ns) {
-        if (src == null) return null;
-
-        String local = src.getLocalName();
-        String qName = (local != null && !local.isEmpty()) ? local : src.getNodeName();
-        Element out = targetDoc.createElementNS(ns, qName);
-
-        // copy attributes
-        if (src.hasAttributes()) {
-            for (int i = 0; i < src.getAttributes().getLength(); i++) {
-                Node a = src.getAttributes().item(i);
-                if (a == null) continue;
-                // CAF 文件通常无命名空间属性，这里按原样复制
-                out.setAttribute(a.getNodeName(), a.getNodeValue());
-            }
+    private static String normalizeIt1(String s) {
+        if (s == null) return "";
+        // SII 常见提示：可能存在“商品名称多余空格”导致 timbre 无效。
+        // 这里折叠所有空白为单空格，并截断 40 字符。
+        String v = s.replaceAll("\\s+", " ").trim();
+        if (v.length() > 40) {
+            v = v.substring(0, 40);
         }
+        return v;
+    }
 
-        NodeList children = src.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            Node c = children.item(i);
-            if (c == null) continue;
-            switch (c.getNodeType()) {
-                case Node.ELEMENT_NODE:
-                    out.appendChild(importElementIntoNamespace(targetDoc, (Element) c, ns));
-                    break;
-                case Node.TEXT_NODE:
-                    out.appendChild(targetDoc.createTextNode(c.getNodeValue()));
-                    break;
-                default:
-                    // ignore others
-                    break;
-            }
-        }
-        return out;
+    private static byte[] canonicalizeInclusiveIso88591Bytes(Element el) throws Exception {
+        byte[] utf8 = canonicalizeInclusive(el);
+        // Apache xmlsec 的 C14N 输出为 UTF-8 bytes。
+        // 但 DTE 文档声明为 ISO-8859-1，SII 的 timbre 验证实现可能按文档编码取字节。
+        // 为避免字节不一致，这里将 C14N 结果按 UTF-8 解码后，再以 ISO-8859-1 编码为签名输入。
+        String s = new String(utf8, java.nio.charset.StandardCharsets.UTF_8);
+        return s.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
     }
 
     private static PublicKey buildRsaPublicKey(String modulusB64, String exponentB64) throws Exception {
@@ -180,7 +167,7 @@ public class TedGenerator {
             throw new IllegalStateException("TED 中缺少 FRMT 节点");
         }
 
-        byte[] ddBytes = canonicalizeInclusive(dd);
+        byte[] ddBytes = canonicalizeInclusiveIso88591Bytes(dd);
         byte[] signature = Base64.getDecoder().decode(frmt.getTextContent().trim());
 
         Signature sig = Signature.getInstance("SHA1withRSA");
@@ -218,7 +205,7 @@ public class TedGenerator {
             throw new IllegalStateException("TED 中缺少 FRMT 节点，无法重算 TED FRMT");
         }
 
-        byte[] ddBytes = canonicalizeInclusive(dd);
+        byte[] ddBytes = canonicalizeInclusiveIso88591Bytes(dd);
         Signature sig = Signature.getInstance("SHA1withRSA");
         sig.initSign(privateKey);
         sig.update(ddBytes);
