@@ -43,8 +43,8 @@ public class SetBasicoCaseFactory {
         List<CaseSpec> cases = new ArrayList<>();
 
         cases.add(new CaseSpec("CASO-1", Arrays.asList(
-                new Line("Cambio de aceite", 1, bd(19900), false, null),
-                new Line("Alineacion y balanceo", 1, bd(9900), false, null)
+                new Line("Cambio de aceite", 1, bd(888), false, null),
+                new Line("Alineacion y balanceo", 1, bd(888), false, null)
         )));
 
         cases.add(new CaseSpec("CASO-2", Arrays.asList(
@@ -97,8 +97,10 @@ public class SetBasicoCaseFactory {
         data.setCmnaOrigen(cfg.comuna);
         data.setCiudadOrigen(cfg.ciudad);
 
-        data.setRutReceptor("60803000-K");
-        data.setRznSocReceptor("SII");
+        String rutReceptor = System.getProperty("sii.rutReceptor", "60803000-K");
+        String rznSocReceptor = System.getProperty("sii.rznSocReceptor", "SII");
+        data.setRutReceptor(rutReceptor);
+        data.setRznSocReceptor(rznSocReceptor);
 
         Totals totals = computeTotals(lines);
         if (totals.mntNeto != null) {

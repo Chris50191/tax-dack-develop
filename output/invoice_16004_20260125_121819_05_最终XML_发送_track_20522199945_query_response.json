@@ -1,0 +1,28 @@
+{
+  "rut_emisor" : "78065438-4",
+  "rut_envia" : "24529296-1",
+  "trackid" : "20522199945",
+  "fecha_recepcion" : "25/01/2026 12:18:21",
+  "estado" : "RCT",
+  "estadistica" : [ {
+    "tipo" : "39",
+    "informados" : 1,
+    "aceptados" : 0,
+    "rechazados" : 0,
+    "reparos" : 0
+  } ],
+  "detalle_rep_rech" : [ {
+    "tipo" : null,
+    "folio" : null,
+    "estado" : "RCH",
+    "descripcion" : "DTE Rechazado",
+    "error" : [ {
+      "seccion" : "CRT",
+      "linea" : 0,
+      "nivel" : 3,
+      "codigo" : 18,
+      "descripcion" : "RUT Receptor (Caratula) Invalido",
+      "detalle" : "[66666666-6]"
+    } ]
+  } ]
+}

@@ -1910,7 +1910,8 @@ public class InvoiceGenerator {
         if (rutEmisor == null || rutEmisor.trim().isEmpty()) throw new IllegalArgumentException("rutEmisor 不能为空");
         List<SubTotDTE> subTotDTEList = new ArrayList<>();
         subTotDTEList.add(new SubTotDTE(invoiceData.getTipoDTE(), 1));
-        return new Caratula(rutEmisor, rutEnvia, invoiceData.getRutReceptor(), invoiceData.getFchResol(),
+        String caratulaRutReceptor = System.getProperty("sii.caratulaRutReceptor", "60803000-K");
+        return new Caratula(rutEmisor, rutEnvia, caratulaRutReceptor, invoiceData.getFchResol(),
                 invoiceData.getNroResol(), invoiceData.getTmstFirmaEnv(), subTotDTEList);
     }
 
@@ -1941,7 +1942,8 @@ public class InvoiceGenerator {
 
         List<SubTotDTE> subTotDTEList = new ArrayList<>();
         subTotDTEList.add(new SubTotDTE(first.getTipoDTE(), count));
-        return new Caratula(rutEmisor, rutEnvia, first.getRutReceptor(), first.getFchResol(),
+        String caratulaRutReceptor = System.getProperty("sii.caratulaRutReceptor", "60803000-K");
+        return new Caratula(rutEmisor, rutEnvia, caratulaRutReceptor, first.getFchResol(),
                 first.getNroResol(), first.getTmstFirmaEnv(), subTotDTEList);
     }
 

@@ -1,0 +1,28 @@
+{
+  "rut_emisor" : "78065438-4",
+  "rut_envia" : "24529296-1",
+  "trackid" : "20521840183",
+  "fecha_recepcion" : "25/01/2026 11:43:13",
+  "estado" : "EPR",
+  "estadistica" : [ {
+    "tipo" : "39",
+    "informados" : 1,
+    "aceptados" : 0,
+    "rechazados" : 1,
+    "reparos" : 0
+  } ],
+  "detalle_rep_rech" : [ {
+    "tipo" : "39",
+    "folio" : "1",
+    "estado" : "RCH",
+    "descripcion" : "DTE Rechazado",
+    "error" : [ {
+      "seccion" : "CAF",
+      "linea" : 0,
+      "nivel" : 3,
+      "codigo" : 516,
+      "descripcion" : "IDK no corresponde al ambiente",
+      "detalle" : "[100] CAF - IDK enviado es de certificacion"
+    } ]
+  } ]
+}

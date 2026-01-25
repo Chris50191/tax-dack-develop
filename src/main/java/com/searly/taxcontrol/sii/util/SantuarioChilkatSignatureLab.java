@@ -267,6 +267,14 @@ public class SantuarioChilkatSignatureLab {
 
                     sig.addKeyInfo((PublicKey) certForSig.getPublicKey());
                     sig.addKeyInfo(certForSig);
+
+                    boolean injectWhitespace = Boolean.parseBoolean(System.getProperty("lab.injectChilkatWhitespace", "false"));
+                    if (injectWhitespace && isDocumento) {
+                        try {
+                            injectChilkatWhitespace(sig.getElement());
+                        } catch (Exception ignored) {
+                        }
+                    }
                     sig.sign(pk);
 
                     SigSnapshot actual = snapshotSignatureSingle(doc, sig.getElement(), expect.owner);
@@ -310,6 +318,55 @@ public class SantuarioChilkatSignatureLab {
             if (!found) {
                 System.out.println("\n>>> 未找到可完全匹配的 Variant（仍可扩展枚举：CanonicalizationMethod/Transforms/Prefix/KeyInfo 结构）。");
             }
+        }
+    }
+
+    private static void injectChilkatWhitespace(Element signatureEl) {
+        if (signatureEl == null) {
+            return;
+        }
+        Document doc = signatureEl.getOwnerDocument();
+        if (doc == null) {
+            return;
+        }
+
+        Element signedInfoEl = firstChildByLocalName(signatureEl, "SignedInfo");
+        if (signedInfoEl == null) {
+            return;
+        }
+
+        injectNewlinesBetweenElementChildren(doc, signedInfoEl);
+
+        Element refEl = firstChildByLocalName(signedInfoEl, "Reference");
+        if (refEl != null) {
+            injectNewlinesBetweenElementChildren(doc, refEl);
+            Element transformsEl = firstChildByLocalName(refEl, "Transforms");
+            if (transformsEl != null) {
+                injectNewlinesBetweenElementChildren(doc, transformsEl);
+            }
+        }
+    }
+
+    private static void injectNewlinesBetweenElementChildren(Document doc, Element parent) {
+        if (doc == null || parent == null) {
+            return;
+        }
+
+        Node child = parent.getFirstChild();
+        while (child != null) {
+            Node next = child.getNextSibling();
+            if (child.getNodeType() == Node.ELEMENT_NODE) {
+                Node prev = child.getPreviousSibling();
+                if (!(prev != null && prev.getNodeType() == Node.TEXT_NODE && "\n".equals(prev.getNodeValue()))) {
+                    parent.insertBefore(doc.createTextNode("\n"), child);
+                }
+            }
+            child = next;
+        }
+
+        Node last = parent.getLastChild();
+        if (last != null && last.getNodeType() == Node.ELEMENT_NODE) {
+            parent.appendChild(doc.createTextNode("\n"));
         }
     }
 
@@ -815,6 +872,14 @@ public class SantuarioChilkatSignatureLab {
         boolean enabled = Boolean.parseBoolean(System.getProperty("lab.useHybridC14N", "false"));
         if (!enabled) {
             return;
+        }
+
+        try {
+            SantuarioChilkatCompatInstaller.install();
+            System.out.println("[lab] HybridC14N 已启用（register）：Documento=>exc-c14n, others=>c14n；SignedInfo under DTE=>exc-c14n");
+            return;
+        } catch (Exception e) {
+            System.out.println("[lab] HybridC14N register 失败，尝试反射注入兜底: " + e.getMessage());
         }
 
         try {

@@ -40,6 +40,7 @@ public class TransformC14NChilkatHybrid extends TransformSpi {
             boolean secureValidation
     ) throws TransformationException {
         try {
+            String referenceId = extractSameDocReferenceId(transformElement);
             Node target = resolveSameDocReferenceTarget(transformElement);
             if (target == null) {
                 target = input == null ? null : input.getSubNode();
@@ -48,7 +49,7 @@ public class TransformC14NChilkatHybrid extends TransformSpi {
                 return input;
             }
 
-            String algo = pickAlgoByTarget(target);
+            String algo = pickAlgoByTarget(target, referenceId);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Canonicalizer.getInstance(algo).canonicalizeSubtree(target, baos);
             byte[] out = baos.toByteArray();
@@ -65,14 +66,43 @@ public class TransformC14NChilkatHybrid extends TransformSpi {
         }
     }
 
-    private static String pickAlgoByTarget(Node target) {
+    private static String pickAlgoByTarget(Node target, String referenceId) {
+        // 兜底：签名生成阶段有时难以从 target 可靠判断 Documento；优先按 Reference URI 的 ID 规则判定。
+        // 本项目 Documento@ID 规则：BoletaElectronica_SET_<CASE>_<FOLIO>
+        if (referenceId != null && !referenceId.isEmpty()) {
+            if (referenceId.startsWith("BoletaElectronica_SET_")) {
+                return Canonicalizer.ALGO_ID_C14N_EXCL_OMIT_COMMENTS;
+            }
+        }
         if (target instanceof Element) {
-            String ln = ((Element) target).getLocalName();
+            String ln = localNameOrNodeName((Element) target);
             if ("Documento".equals(ln)) {
                 return Canonicalizer.ALGO_ID_C14N_EXCL_OMIT_COMMENTS;
             }
         }
         return Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS;
+    }
+
+    private static String extractSameDocReferenceId(Element transformElement) {
+        try {
+            if (transformElement == null) {
+                return null;
+            }
+            Node p = transformElement.getParentNode();
+            while (p != null && p.getNodeType() == Node.ELEMENT_NODE) {
+                Element pe = (Element) p;
+                if ("Reference".equals(localNameOrNodeName(pe))) {
+                    String uri = pe.getAttribute("URI");
+                    if (uri != null && uri.startsWith("#") && uri.length() > 1) {
+                        return uri.substring(1);
+                    }
+                    return null;
+                }
+                p = p.getParentNode();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private static Node resolveSameDocReferenceTarget(Element transformElement) {
@@ -84,7 +114,7 @@ public class TransformC14NChilkatHybrid extends TransformSpi {
             Node p = transformElement.getParentNode();
             while (p != null && p.getNodeType() == Node.ELEMENT_NODE) {
                 Element pe = (Element) p;
-                if ("Reference".equals(pe.getLocalName())) {
+                if ("Reference".equals(localNameOrNodeName(pe))) {
                     String uri = pe.getAttribute("URI");
                     if (uri != null && uri.startsWith("#") && uri.length() > 1) {
                         String id = uri.substring(1);
@@ -97,6 +127,22 @@ public class TransformC14NChilkatHybrid extends TransformSpi {
         } catch (Exception ignored) {
         }
         return null;
+    }
+
+    private static String localNameOrNodeName(Element el) {
+        if (el == null) {
+            return null;
+        }
+        String ln = el.getLocalName();
+        if (ln != null && !ln.isEmpty()) {
+            return ln;
+        }
+        String nn = el.getNodeName();
+        if (nn == null) {
+            return null;
+        }
+        int idx = nn.indexOf(':');
+        return idx >= 0 ? nn.substring(idx + 1) : nn;
     }
 
     private static Node findById(Element root, String id) {

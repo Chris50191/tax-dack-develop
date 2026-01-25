@@ -68,7 +68,7 @@ public class CanonicalizerChilkatHybrid extends CanonicalizerSpi {
             return inclusive;
         }
         Element el = (Element) node;
-        if (!"SignedInfo".equals(el.getLocalName())) {
+        if (!"SignedInfo".equals(localNameOrNodeName(el))) {
             return inclusive;
         }
         Node p = el.getParentNode();
@@ -76,7 +76,7 @@ public class CanonicalizerChilkatHybrid extends CanonicalizerSpi {
             return inclusive;
         }
         Element sig = (Element) p;
-        if (!"Signature".equals(sig.getLocalName())) {
+        if (!"Signature".equals(localNameOrNodeName(sig))) {
             return inclusive;
         }
         Node gp = sig.getParentNode();
@@ -85,9 +85,25 @@ public class CanonicalizerChilkatHybrid extends CanonicalizerSpi {
         }
         Element parent = (Element) gp;
         // Documento 内层签名：<Signature> 的父节点是 <DTE>
-        if ("DTE".equals(parent.getLocalName())) {
+        if ("DTE".equals(localNameOrNodeName(parent))) {
             return exclusive;
         }
         return inclusive;
+    }
+
+    private static String localNameOrNodeName(Element el) {
+        if (el == null) {
+            return null;
+        }
+        String ln = el.getLocalName();
+        if (ln != null && !ln.isEmpty()) {
+            return ln;
+        }
+        String nn = el.getNodeName();
+        if (nn == null) {
+            return null;
+        }
+        int idx = nn.indexOf(':');
+        return idx >= 0 ? nn.substring(idx + 1) : nn;
     }
 }
