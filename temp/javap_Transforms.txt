@@ -1,0 +1,293 @@
+Compiled from "Transforms.java"
+public class org.apache.xml.security.transforms.Transforms extends org.apache.xml.security.utils.SignatureElementProxy {
+  public static final java.lang.String TRANSFORM_C14N_OMIT_COMMENTS;
+
+  public static final java.lang.String TRANSFORM_C14N_WITH_COMMENTS;
+
+  public static final java.lang.String TRANSFORM_C14N11_OMIT_COMMENTS;
+
+  public static final java.lang.String TRANSFORM_C14N11_WITH_COMMENTS;
+
+  public static final java.lang.String TRANSFORM_C14N_EXCL_OMIT_COMMENTS;
+
+  public static final java.lang.String TRANSFORM_C14N_EXCL_WITH_COMMENTS;
+
+  public static final java.lang.String TRANSFORM_XSLT;
+
+  public static final java.lang.String TRANSFORM_BASE64_DECODE;
+
+  public static final java.lang.String TRANSFORM_XPATH;
+
+  public static final java.lang.String TRANSFORM_ENVELOPED_SIGNATURE;
+
+  public static final java.lang.String TRANSFORM_XPOINTER;
+
+  public static final java.lang.String TRANSFORM_XPATH2FILTER;
+
+  protected org.apache.xml.security.transforms.Transforms();
+    Code:
+         0: aload_0
+         1: invokespecial #3                  // Method org/apache/xml/security/utils/SignatureElementProxy."<init>":()V
+         4: aload_0
+         5: iconst_1
+         6: putfield      #4                  // Field secureValidation:Z
+         9: return
+
+  public org.apache.xml.security.transforms.Transforms(org.w3c.dom.Document);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokespecial #5                  // Method org/apache/xml/security/utils/SignatureElementProxy."<init>":(Lorg/w3c/dom/Document;)V
+         5: aload_0
+         6: iconst_1
+         7: putfield      #4                  // Field secureValidation:Z
+        10: aload_0
+        11: invokevirtual #6                  // Method addReturnToSelf:()V
+        14: return
+
+  public org.apache.xml.security.transforms.Transforms(org.w3c.dom.Element, java.lang.String) throws org.w3c.dom.DOMException, org.apache.xml.security.signature.XMLSignatureException, org.apache.xml.security.transforms.InvalidTransformException, org.apache.xml.security.transforms.TransformationException, org.apache.xml.security.exceptions.XMLSecurityException;
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_2
+         3: invokespecial #7                  // Method org/apache/xml/security/utils/SignatureElementProxy."<init>":(Lorg/w3c/dom/Element;Ljava/lang/String;)V
+         6: aload_0
+         7: iconst_1
+         8: putfield      #4                  // Field secureValidation:Z
+        11: aload_0
+        12: invokevirtual #8                  // Method getLength:()I
+        15: istore_3
+        16: iload_3
+        17: ifne          48
+        20: iconst_2
+        21: anewarray     #9                  // class java/lang/Object
+        24: dup
+        25: iconst_0
+        26: ldc           #10                 // String Transform
+        28: aastore
+        29: dup
+        30: iconst_1
+        31: ldc           #11                 // String Transforms
+        33: aastore
+        34: astore        4
+        36: new           #12                 // class org/apache/xml/security/transforms/TransformationException
+        39: dup
+        40: ldc           #13                 // String xml.WrongContent
+        42: aload         4
+        44: invokespecial #14                 // Method org/apache/xml/security/transforms/TransformationException."<init>":(Ljava/lang/String;[Ljava/lang/Object;)V
+        47: athrow
+        48: return
+
+  public void setSecureValidation(boolean);
+    Code:
+         0: aload_0
+         1: iload_1
+         2: putfield      #4                  // Field secureValidation:Z
+         5: return
+
+  public void addTransform(java.lang.String) throws org.apache.xml.security.transforms.TransformationException;
+    Code:
+         0: getstatic     #15                 // Field LOG:Lorg/slf4j/Logger;
+         3: ldc           #16                 // String Transforms.addTransform({})
+         5: aload_1
+         6: invokeinterface #17,  3           // InterfaceMethod org/slf4j/Logger.debug:(Ljava/lang/String;Ljava/lang/Object;)V
+        11: new           #18                 // class org/apache/xml/security/transforms/Transform
+        14: dup
+        15: aload_0
+        16: invokevirtual #19                 // Method getDocument:()Lorg/w3c/dom/Document;
+        19: aload_1
+        20: invokespecial #20                 // Method org/apache/xml/security/transforms/Transform."<init>":(Lorg/w3c/dom/Document;Ljava/lang/String;)V
+        23: astore_2
+        24: aload_0
+        25: aload_2
+        26: invokespecial #21                 // Method addTransform:(Lorg/apache/xml/security/transforms/Transform;)V
+        29: goto          42
+        32: astore_2
+        33: new           #12                 // class org/apache/xml/security/transforms/TransformationException
+        36: dup
+        37: aload_2
+        38: invokespecial #23                 // Method org/apache/xml/security/transforms/TransformationException."<init>":(Ljava/lang/Exception;)V
+        41: athrow
+        42: return
+      Exception table:
+         from    to  target type
+             0    29    32   Class org/apache/xml/security/transforms/InvalidTransformException
+
+  public void addTransform(java.lang.String, org.w3c.dom.Element) throws org.apache.xml.security.transforms.TransformationException;
+    Code:
+         0: getstatic     #15                 // Field LOG:Lorg/slf4j/Logger;
+         3: ldc           #16                 // String Transforms.addTransform({})
+         5: aload_1
+         6: invokeinterface #17,  3           // InterfaceMethod org/slf4j/Logger.debug:(Ljava/lang/String;Ljava/lang/Object;)V
+        11: new           #18                 // class org/apache/xml/security/transforms/Transform
+        14: dup
+        15: aload_0
+        16: invokevirtual #19                 // Method getDocument:()Lorg/w3c/dom/Document;
+        19: aload_1
+        20: aload_2
+        21: invokespecial #24                 // Method org/apache/xml/security/transforms/Transform."<init>":(Lorg/w3c/dom/Document;Ljava/lang/String;Lorg/w3c/dom/Element;)V
+        24: astore_3
+        25: aload_0
+        26: aload_3
+        27: invokespecial #21                 // Method addTransform:(Lorg/apache/xml/security/transforms/Transform;)V
+        30: goto          43
+        33: astore_3
+        34: new           #12                 // class org/apache/xml/security/transforms/TransformationException
+        37: dup
+        38: aload_3
+        39: invokespecial #23                 // Method org/apache/xml/security/transforms/TransformationException."<init>":(Ljava/lang/Exception;)V
+        42: athrow
+        43: return
+      Exception table:
+         from    to  target type
+             0    30    33   Class org/apache/xml/security/transforms/InvalidTransformException
+
+  public void addTransform(java.lang.String, org.w3c.dom.NodeList) throws org.apache.xml.security.transforms.TransformationException;
+    Code:
+         0: new           #18                 // class org/apache/xml/security/transforms/Transform
+         3: dup
+         4: aload_0
+         5: invokevirtual #19                 // Method getDocument:()Lorg/w3c/dom/Document;
+         8: aload_1
+         9: aload_2
+        10: invokespecial #25                 // Method org/apache/xml/security/transforms/Transform."<init>":(Lorg/w3c/dom/Document;Ljava/lang/String;Lorg/w3c/dom/NodeList;)V
+        13: astore_3
+        14: aload_0
+        15: aload_3
+        16: invokespecial #21                 // Method addTransform:(Lorg/apache/xml/security/transforms/Transform;)V
+        19: goto          32
+        22: astore_3
+        23: new           #12                 // class org/apache/xml/security/transforms/TransformationException
+        26: dup
+        27: aload_3
+        28: invokespecial #23                 // Method org/apache/xml/security/transforms/TransformationException."<init>":(Ljava/lang/Exception;)V
+        31: athrow
+        32: return
+      Exception table:
+         from    to  target type
+             0    19    22   Class org/apache/xml/security/transforms/InvalidTransformException
+
+  public org.apache.xml.security.signature.XMLSignatureInput performTransforms(org.apache.xml.security.signature.XMLSignatureInput) throws org.apache.xml.security.transforms.TransformationException;
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aconst_null
+         3: invokevirtual #29                 // Method performTransforms:(Lorg/apache/xml/security/signature/XMLSignatureInput;Ljava/io/OutputStream;)Lorg/apache/xml/security/signature/XMLSignatureInput;
+         6: areturn
+
+  public org.apache.xml.security.signature.XMLSignatureInput performTransforms(org.apache.xml.security.signature.XMLSignatureInput, java.io.OutputStream) throws org.apache.xml.security.transforms.TransformationException;
+    Code:
+         0: aload_0
+         1: invokevirtual #8                  // Method getLength:()I
+         4: iconst_1
+         5: isub
+         6: istore_3
+         7: iconst_0
+         8: istore        4
+        10: iload         4
+        12: iload_3
+        13: if_icmpge     67
+        16: aload_0
+        17: iload         4
+        19: invokevirtual #30                 // Method item:(I)Lorg/apache/xml/security/transforms/Transform;
+        22: astore        5
+        24: getstatic     #15                 // Field LOG:Lorg/slf4j/Logger;
+        27: ldc           #31                 // String Perform the ({})th {} transform
+        29: iload         4
+        31: invokestatic  #32                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        34: aload         5
+        36: invokevirtual #26                 // Method org/apache/xml/security/transforms/Transform.getURI:()Ljava/lang/String;
+        39: invokeinterface #33,  4           // InterfaceMethod org/slf4j/Logger.debug:(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V
+        44: aload_0
+        45: aload         5
+        47: invokespecial #34                 // Method checkSecureValidation:(Lorg/apache/xml/security/transforms/Transform;)V
+        50: aload         5
+        52: aload_1
+        53: aload_0
+        54: getfield      #4                  // Field secureValidation:Z
+        57: invokevirtual #35                 // Method org/apache/xml/security/transforms/Transform.performTransform:(Lorg/apache/xml/security/signature/XMLSignatureInput;Z)Lorg/apache/xml/security/signature/XMLSignatureInput;
+        60: astore_1
+        61: iinc          4, 1
+        64: goto          10
+        67: iload_3
+        68: iflt          115
+        71: aload_0
+        72: iload_3
+        73: invokevirtual #30                 // Method item:(I)Lorg/apache/xml/security/transforms/Transform;
+        76: astore        4
+        78: getstatic     #15                 // Field LOG:Lorg/slf4j/Logger;
+        81: ldc           #31                 // String Perform the ({})th {} transform
+        83: iload_3
+        84: invokestatic  #32                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+        87: aload         4
+        89: invokevirtual #26                 // Method org/apache/xml/security/transforms/Transform.getURI:()Ljava/lang/String;
+        92: invokeinterface #33,  4           // InterfaceMethod org/slf4j/Logger.debug:(Ljava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V
+        97: aload_0
+        98: aload         4
+       100: invokespecial #34                 // Method checkSecureValidation:(Lorg/apache/xml/security/transforms/Transform;)V
+       103: aload         4
+       105: aload_1
+       106: aload_2
+       107: aload_0
+       108: getfield      #4                  // Field secureValidation:Z
+       111: invokevirtual #36                 // Method org/apache/xml/security/transforms/Transform.performTransform:(Lorg/apache/xml/security/signature/XMLSignatureInput;Ljava/io/OutputStream;Z)Lorg/apache/xml/security/signature/XMLSignatureInput;
+       114: astore_1
+       115: aload_1
+       116: areturn
+       117: astore_3
+       118: new           #12                 // class org/apache/xml/security/transforms/TransformationException
+       121: dup
+       122: aload_3
+       123: invokespecial #23                 // Method org/apache/xml/security/transforms/TransformationException."<init>":(Ljava/lang/Exception;)V
+       126: athrow
+      Exception table:
+         from    to  target type
+             0   116   117   Class java/io/IOException
+             0   116   117   Class org/apache/xml/security/c14n/CanonicalizationException
+             0   116   117   Class org/apache/xml/security/c14n/InvalidCanonicalizerException
+
+  public int getLength();
+    Code:
+         0: aload_0
+         1: invokespecial #44                 // Method initTransforms:()V
+         4: aload_0
+         5: getfield      #45                 // Field transformsElement:[Lorg/w3c/dom/Element;
+         8: arraylength
+         9: ireturn
+
+  public org.apache.xml.security.transforms.Transform item(int) throws org.apache.xml.security.transforms.TransformationException;
+    Code:
+         0: aload_0
+         1: invokespecial #44                 // Method initTransforms:()V
+         4: new           #18                 // class org/apache/xml/security/transforms/Transform
+         7: dup
+         8: aload_0
+         9: getfield      #45                 // Field transformsElement:[Lorg/w3c/dom/Element;
+        12: iload_1
+        13: aaload
+        14: aload_0
+        15: getfield      #46                 // Field baseURI:Ljava/lang/String;
+        18: invokespecial #47                 // Method org/apache/xml/security/transforms/Transform."<init>":(Lorg/w3c/dom/Element;Ljava/lang/String;)V
+        21: areturn
+        22: astore_2
+        23: new           #12                 // class org/apache/xml/security/transforms/TransformationException
+        26: dup
+        27: aload_2
+        28: invokespecial #23                 // Method org/apache/xml/security/transforms/TransformationException."<init>":(Ljava/lang/Exception;)V
+        31: athrow
+      Exception table:
+         from    to  target type
+             0    21    22   Class org/apache/xml/security/exceptions/XMLSecurityException
+
+  public java.lang.String getBaseLocalName();
+    Code:
+         0: ldc           #11                 // String Transforms
+         2: areturn
+
+  static {};
+    Code:
+         0: ldc           #40                 // class org/apache/xml/security/transforms/Transforms
+         2: invokestatic  #51                 // Method org/slf4j/LoggerFactory.getLogger:(Ljava/lang/Class;)Lorg/slf4j/Logger;
+         5: putstatic     #15                 // Field LOG:Lorg/slf4j/Logger;
+         8: return
+}

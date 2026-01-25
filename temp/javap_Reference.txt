@@ -1,0 +1,721 @@
+Compiled from "Reference.java"
+public class org.apache.xml.security.signature.Reference extends org.apache.xml.security.utils.SignatureElementProxy {
+  public static final java.lang.String OBJECT_URI;
+
+  public static final java.lang.String MANIFEST_URI;
+
+  public static final int MAXIMUM_TRANSFORM_COUNT;
+
+  protected org.apache.xml.security.signature.Reference(org.w3c.dom.Document, java.lang.String, java.lang.String, org.apache.xml.security.signature.Manifest, org.apache.xml.security.transforms.Transforms, java.lang.String) throws org.apache.xml.security.signature.XMLSignatureException;
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokespecial #5                  // Method org/apache/xml/security/utils/SignatureElementProxy."<init>":(Lorg/w3c/dom/Document;)V
+         5: aload_0
+         6: iconst_1
+         7: putfield      #6                  // Field secureValidation:Z
+        10: aload_0
+        11: invokevirtual #7                  // Method addReturnToSelf:()V
+        14: aload_0
+        15: aload_2
+        16: putfield      #8                  // Field baseURI:Ljava/lang/String;
+        19: aload_0
+        20: aload         4
+        22: putfield      #9                  // Field manifest:Lorg/apache/xml/security/signature/Manifest;
+        25: aload_0
+        26: aload_3
+        27: invokevirtual #10                 // Method setURI:(Ljava/lang/String;)V
+        30: aload         5
+        32: ifnull        51
+        35: aload_0
+        36: aload         5
+        38: putfield      #11                 // Field transforms:Lorg/apache/xml/security/transforms/Transforms;
+        41: aload_0
+        42: aload         5
+        44: invokevirtual #12                 // Method appendSelf:(Lorg/apache/xml/security/utils/ElementProxy;)V
+        47: aload_0
+        48: invokevirtual #7                  // Method addReturnToSelf:()V
+        51: new           #13                 // class org/apache/xml/security/signature/Reference$1
+        54: dup
+        55: aload_0
+        56: aload_0
+        57: invokevirtual #14                 // Method getDocument:()Lorg/w3c/dom/Document;
+        60: aload         6
+        62: invokespecial #15                 // Method org/apache/xml/security/signature/Reference$1."<init>":(Lorg/apache/xml/security/signature/Reference;Lorg/w3c/dom/Document;Ljava/lang/String;)V
+        65: astore        7
+        67: aload_0
+        68: aload         7
+        70: invokevirtual #16                 // Method org/apache/xml/security/algorithms/Algorithm.getElement:()Lorg/w3c/dom/Element;
+        73: putfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+        76: aload_0
+        77: aload_0
+        78: getfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+        81: invokevirtual #18                 // Method appendSelf:(Lorg/w3c/dom/Node;)V
+        84: aload_0
+        85: invokevirtual #7                  // Method addReturnToSelf:()V
+        88: aload_0
+        89: aload_0
+        90: invokevirtual #14                 // Method getDocument:()Lorg/w3c/dom/Document;
+        93: ldc           #19                 // String DigestValue
+        95: invokestatic  #20                 // Method org/apache/xml/security/utils/XMLUtils.createElementInSignatureSpace:(Lorg/w3c/dom/Document;Ljava/lang/String;)Lorg/w3c/dom/Element;
+        98: putfield      #21                 // Field digestValueElement:Lorg/w3c/dom/Element;
+       101: aload_0
+       102: aload_0
+       103: getfield      #21                 // Field digestValueElement:Lorg/w3c/dom/Element;
+       106: invokevirtual #18                 // Method appendSelf:(Lorg/w3c/dom/Node;)V
+       109: aload_0
+       110: invokevirtual #7                  // Method addReturnToSelf:()V
+       113: return
+
+  protected org.apache.xml.security.signature.Reference(org.w3c.dom.Element, java.lang.String, org.apache.xml.security.signature.Manifest) throws org.apache.xml.security.exceptions.XMLSecurityException;
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_2
+         3: aload_3
+         4: iconst_1
+         5: invokespecial #22                 // Method "<init>":(Lorg/w3c/dom/Element;Ljava/lang/String;Lorg/apache/xml/security/signature/Manifest;Z)V
+         8: return
+
+  protected org.apache.xml.security.signature.Reference(org.w3c.dom.Element, java.lang.String, org.apache.xml.security.signature.Manifest, boolean) throws org.apache.xml.security.exceptions.XMLSecurityException;
+    Code:
+         0: aload_0
+         1: aload_1
+         2: aload_2
+         3: invokespecial #23                 // Method org/apache/xml/security/utils/SignatureElementProxy."<init>":(Lorg/w3c/dom/Element;Ljava/lang/String;)V
+         6: aload_0
+         7: iconst_1
+         8: putfield      #6                  // Field secureValidation:Z
+        11: aload_0
+        12: iload         4
+        14: putfield      #6                  // Field secureValidation:Z
+        17: aload_0
+        18: aload_2
+        19: putfield      #8                  // Field baseURI:Ljava/lang/String;
+        22: aload_1
+        23: invokeinterface #24,  1           // InterfaceMethod org/w3c/dom/Element.getFirstChild:()Lorg/w3c/dom/Node;
+        28: invokestatic  #25                 // Method org/apache/xml/security/utils/XMLUtils.getNextElement:(Lorg/w3c/dom/Node;)Lorg/w3c/dom/Element;
+        31: astore        5
+        33: aload         5
+        35: ifnull        160
+        38: ldc           #26                 // String Transforms
+        40: aload         5
+        42: invokeinterface #27,  1           // InterfaceMethod org/w3c/dom/Element.getLocalName:()Ljava/lang/String;
+        47: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+        50: ifeq          160
+        53: ldc           #29                 // String http://www.w3.org/2000/09/xmldsig#
+        55: aload         5
+        57: invokeinterface #30,  1           // InterfaceMethod org/w3c/dom/Element.getNamespaceURI:()Ljava/lang/String;
+        62: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+        65: ifeq          160
+        68: aload_0
+        69: new           #31                 // class org/apache/xml/security/transforms/Transforms
+        72: dup
+        73: aload         5
+        75: aload_0
+        76: getfield      #8                  // Field baseURI:Ljava/lang/String;
+        79: invokespecial #32                 // Method org/apache/xml/security/transforms/Transforms."<init>":(Lorg/w3c/dom/Element;Ljava/lang/String;)V
+        82: putfield      #11                 // Field transforms:Lorg/apache/xml/security/transforms/Transforms;
+        85: aload_0
+        86: getfield      #11                 // Field transforms:Lorg/apache/xml/security/transforms/Transforms;
+        89: iload         4
+        91: invokevirtual #33                 // Method org/apache/xml/security/transforms/Transforms.setSecureValidation:(Z)V
+        94: iload         4
+        96: ifeq          148
+        99: aload_0
+       100: getfield      #11                 // Field transforms:Lorg/apache/xml/security/transforms/Transforms;
+       103: invokevirtual #34                 // Method org/apache/xml/security/transforms/Transforms.getLength:()I
+       106: iconst_5
+       107: if_icmple     148
+       110: iconst_2
+       111: anewarray     #36                 // class java/lang/Object
+       114: dup
+       115: iconst_0
+       116: aload_0
+       117: getfield      #11                 // Field transforms:Lorg/apache/xml/security/transforms/Transforms;
+       120: invokevirtual #34                 // Method org/apache/xml/security/transforms/Transforms.getLength:()I
+       123: invokestatic  #37                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+       126: aastore
+       127: dup
+       128: iconst_1
+       129: iconst_5
+       130: invokestatic  #37                 // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+       133: aastore
+       134: astore        6
+       136: new           #38                 // class org/apache/xml/security/exceptions/XMLSecurityException
+       139: dup
+       140: ldc           #39                 // String signature.tooManyTransforms
+       142: aload         6
+       144: invokespecial #40                 // Method org/apache/xml/security/exceptions/XMLSecurityException."<init>":(Ljava/lang/String;[Ljava/lang/Object;)V
+       147: athrow
+       148: aload         5
+       150: invokeinterface #41,  1           // InterfaceMethod org/w3c/dom/Element.getNextSibling:()Lorg/w3c/dom/Node;
+       155: invokestatic  #25                 // Method org/apache/xml/security/utils/XMLUtils.getNextElement:(Lorg/w3c/dom/Node;)Lorg/w3c/dom/Element;
+       158: astore        5
+       160: aload_0
+       161: aload         5
+       163: putfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+       166: aload_0
+       167: getfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+       170: ifnull        207
+       173: ldc           #29                 // String http://www.w3.org/2000/09/xmldsig#
+       175: aload_0
+       176: getfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+       179: invokeinterface #30,  1           // InterfaceMethod org/w3c/dom/Element.getNamespaceURI:()Ljava/lang/String;
+       184: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+       187: ifeq          207
+       190: ldc           #42                 // String DigestMethod
+       192: aload_0
+       193: getfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+       196: invokeinterface #27,  1           // InterfaceMethod org/w3c/dom/Element.getLocalName:()Ljava/lang/String;
+       201: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+       204: ifne          217
+       207: new           #38                 // class org/apache/xml/security/exceptions/XMLSecurityException
+       210: dup
+       211: ldc           #43                 // String signature.Reference.NoDigestMethod
+       213: invokespecial #44                 // Method org/apache/xml/security/exceptions/XMLSecurityException."<init>":(Ljava/lang/String;)V
+       216: athrow
+       217: aload_0
+       218: aload_0
+       219: getfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+       222: invokeinterface #41,  1           // InterfaceMethod org/w3c/dom/Element.getNextSibling:()Lorg/w3c/dom/Node;
+       227: invokestatic  #25                 // Method org/apache/xml/security/utils/XMLUtils.getNextElement:(Lorg/w3c/dom/Node;)Lorg/w3c/dom/Element;
+       230: putfield      #21                 // Field digestValueElement:Lorg/w3c/dom/Element;
+       233: aload_0
+       234: getfield      #21                 // Field digestValueElement:Lorg/w3c/dom/Element;
+       237: ifnull        274
+       240: ldc           #29                 // String http://www.w3.org/2000/09/xmldsig#
+       242: aload_0
+       243: getfield      #21                 // Field digestValueElement:Lorg/w3c/dom/Element;
+       246: invokeinterface #30,  1           // InterfaceMethod org/w3c/dom/Element.getNamespaceURI:()Ljava/lang/String;
+       251: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+       254: ifeq          274
+       257: ldc           #19                 // String DigestValue
+       259: aload_0
+       260: getfield      #21                 // Field digestValueElement:Lorg/w3c/dom/Element;
+       263: invokeinterface #27,  1           // InterfaceMethod org/w3c/dom/Element.getLocalName:()Ljava/lang/String;
+       268: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+       271: ifne          284
+       274: new           #38                 // class org/apache/xml/security/exceptions/XMLSecurityException
+       277: dup
+       278: ldc           #45                 // String signature.Reference.NoDigestValue
+       280: invokespecial #44                 // Method org/apache/xml/security/exceptions/XMLSecurityException."<init>":(Ljava/lang/String;)V
+       283: athrow
+       284: aload_0
+       285: aload_3
+       286: putfield      #9                  // Field manifest:Lorg/apache/xml/security/signature/Manifest;
+       289: return
+
+  public org.apache.xml.security.algorithms.MessageDigestAlgorithm getMessageDigestAlgorithm() throws org.apache.xml.security.signature.XMLSignatureException;
+    Code:
+         0: aload_0
+         1: getfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+         4: ifnonnull     9
+         7: aconst_null
+         8: areturn
+         9: aload_0
+        10: getfield      #17                 // Field digestMethodElem:Lorg/w3c/dom/Element;
+        13: aconst_null
+        14: ldc           #46                 // String Algorithm
+        16: invokeinterface #47,  3           // InterfaceMethod org/w3c/dom/Element.getAttributeNS:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+        21: astore_1
+        22: aload_1
+        23: invokevirtual #48                 // Method java/lang/String.isEmpty:()Z
+        26: ifeq          31
+        29: aconst_null
+        30: areturn
+        31: aload_0
+        32: getfield      #6                  // Field secureValidation:Z
+        35: ifeq          67
+        38: ldc           #50                 // String http://www.w3.org/2001/04/xmldsig-more#md5
+        40: aload_1
+        41: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+        44: ifeq          67
+        47: iconst_1
+        48: anewarray     #36                 // class java/lang/Object
+        51: dup
+        52: iconst_0
+        53: aload_1
+        54: aastore
+        55: astore_2
+        56: new           #51                 // class org/apache/xml/security/signature/XMLSignatureException
+        59: dup
+        60: ldc           #52                 // String signature.signatureAlgorithm
+        62: aload_2
+        63: invokespecial #53                 // Method org/apache/xml/security/signature/XMLSignatureException."<init>":(Ljava/lang/String;[Ljava/lang/Object;)V
+        66: athrow
+        67: aload_0
+        68: invokevirtual #14                 // Method getDocument:()Lorg/w3c/dom/Document;
+        71: aload_1
+        72: invokestatic  #54                 // Method org/apache/xml/security/algorithms/MessageDigestAlgorithm.getInstance:(Lorg/w3c/dom/Document;Ljava/lang/String;)Lorg/apache/xml/security/algorithms/MessageDigestAlgorithm;
+        75: areturn
+
+  public void setURI(java.lang.String);
+    Code:
+         0: aload_1
+         1: ifnull        11
+         4: aload_0
+         5: ldc           #55                 // String URI
+         7: aload_1
+         8: invokevirtual #56                 // Method setLocalAttribute:(Ljava/lang/String;Ljava/lang/String;)V
+        11: return
+
+  public java.lang.String getURI();
+    Code:
+         0: aload_0
+         1: ldc           #55                 // String URI
+         3: invokevirtual #57                 // Method getLocalAttribute:(Ljava/lang/String;)Ljava/lang/String;
+         6: areturn
+
+  public void setId(java.lang.String);
+    Code:
+         0: aload_1
+         1: ifnull        11
+         4: aload_0
+         5: ldc           #58                 // String Id
+         7: aload_1
+         8: invokevirtual #59                 // Method setLocalIdAttribute:(Ljava/lang/String;Ljava/lang/String;)V
+        11: return
+
+  public java.lang.String getId();
+    Code:
+         0: aload_0
+         1: ldc           #58                 // String Id
+         3: invokevirtual #57                 // Method getLocalAttribute:(Ljava/lang/String;)Ljava/lang/String;
+         6: areturn
+
+  public void setType(java.lang.String);
+    Code:
+         0: aload_1
+         1: ifnull        11
+         4: aload_0
+         5: ldc           #60                 // String Type
+         7: aload_1
+         8: invokevirtual #56                 // Method setLocalAttribute:(Ljava/lang/String;Ljava/lang/String;)V
+        11: return
+
+  public java.lang.String getType();
+    Code:
+         0: aload_0
+         1: ldc           #60                 // String Type
+         3: invokevirtual #57                 // Method getLocalAttribute:(Ljava/lang/String;)Ljava/lang/String;
+         6: areturn
+
+  public boolean typeIsReferenceToObject();
+    Code:
+         0: ldc           #61                 // String http://www.w3.org/2000/09/xmldsig#Object
+         2: aload_0
+         3: invokevirtual #62                 // Method getType:()Ljava/lang/String;
+         6: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+         9: ireturn
+
+  public boolean typeIsReferenceToManifest();
+    Code:
+         0: ldc           #63                 // String http://www.w3.org/2000/09/xmldsig#Manifest
+         2: aload_0
+         3: invokevirtual #62                 // Method getType:()Ljava/lang/String;
+         6: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+         9: ireturn
+
+  public void generateDigestValue() throws org.apache.xml.security.signature.XMLSignatureException, org.apache.xml.security.signature.ReferenceNotInitializedException;
+    Code:
+         0: aload_0
+         1: aload_0
+         2: iconst_0
+         3: invokespecial #69                 // Method calculateDigest:(Z)[B
+         6: invokespecial #70                 // Method setDigestValueElement:([B)V
+         9: return
+
+  public org.apache.xml.security.signature.XMLSignatureInput getContentsBeforeTransformation() throws org.apache.xml.security.signature.ReferenceNotInitializedException;
+    Code:
+         0: aload_0
+         1: invokevirtual #71                 // Method getElement:()Lorg/w3c/dom/Element;
+         4: aconst_null
+         5: ldc           #55                 // String URI
+         7: invokeinterface #72,  3           // InterfaceMethod org/w3c/dom/Element.getAttributeNodeNS:(Ljava/lang/String;Ljava/lang/String;)Lorg/w3c/dom/Attr;
+        12: astore_1
+        13: new           #73                 // class org/apache/xml/security/utils/resolver/ResourceResolverContext
+        16: dup
+        17: aload_1
+        18: aload_0
+        19: getfield      #8                  // Field baseURI:Ljava/lang/String;
+        22: aload_0
+        23: getfield      #6                  // Field secureValidation:Z
+        26: aload_0
+        27: getfield      #9                  // Field manifest:Lorg/apache/xml/security/signature/Manifest;
+        30: invokevirtual #74                 // Method org/apache/xml/security/signature/Manifest.getResolverProperties:()Ljava/util/Map;
+        33: invokespecial #75                 // Method org/apache/xml/security/utils/resolver/ResourceResolverContext."<init>":(Lorg/w3c/dom/Attr;Ljava/lang/String;ZLjava/util/Map;)V
+        36: astore_2
+        37: aload_0
+        38: getfield      #9                  // Field manifest:Lorg/apache/xml/security/signature/Manifest;
+        41: invokevirtual #76                 // Method org/apache/xml/security/signature/Manifest.getPerManifestResolvers:()Ljava/util/List;
+        44: aload_2
+        45: invokestatic  #77                 // Method org/apache/xml/security/utils/resolver/ResourceResolver.resolve:(Ljava/util/List;Lorg/apache/xml/security/utils/resolver/ResourceResolverContext;)Lorg/apache/xml/security/signature/XMLSignatureInput;
+        48: areturn
+        49: astore_1
+        50: new           #79                 // class org/apache/xml/security/signature/ReferenceNotInitializedException
+        53: dup
+        54: aload_1
+        55: invokespecial #80                 // Method org/apache/xml/security/signature/ReferenceNotInitializedException."<init>":(Ljava/lang/Exception;)V
+        58: athrow
+      Exception table:
+         from    to  target type
+             0    48    49   Class org/apache/xml/security/utils/resolver/ResourceResolverException
+
+  public org.apache.xml.security.signature.XMLSignatureInput getContentsAfterTransformation() throws org.apache.xml.security.signature.XMLSignatureException;
+    Code:
+         0: aload_0
+         1: invokevirtual #85                 // Method getContentsBeforeTransformation:()Lorg/apache/xml/security/signature/XMLSignatureInput;
+         4: astore_1
+         5: aload_0
+         6: aload_1
+         7: invokespecial #86                 // Method cacheDereferencedElement:(Lorg/apache/xml/security/signature/XMLSignatureInput;)V
+        10: aload_0
+        11: aload_1
+        12: aconst_null
+        13: invokespecial #87                 // Method getContentsAfterTransformation:(Lorg/apache/xml/security/signature/XMLSignatureInput;Ljava/io/OutputStream;)Lorg/apache/xml/security/signature/XMLSignatureInput;
+        16: areturn
+
+  public org.apache.xml.security.signature.XMLSignatureInput getNodesetBeforeFirstCanonicalization() throws org.apache.xml.security.signature.XMLSignatureException;
+    Code:
+         0: aload_0
+         1: invokevirtual #85                 // Method getContentsBeforeTransformation:()Lorg/apache/xml/security/signature/XMLSignatureInput;
+         4: astore_1
+         5: aload_0
+         6: aload_1
+         7: invokespecial #86                 // Method cacheDereferencedElement:(Lorg/apache/xml/security/signature/XMLSignatureInput;)V
+        10: aload_1
+        11: astore_2
+        12: aload_0
+        13: invokevirtual #81                 // Method getTransforms:()Lorg/apache/xml/security/transforms/Transforms;
+        16: astore_3
+        17: aload_3
+        18: ifnull        90
+        21: iconst_0
+        22: istore        4
+        24: iload         4
+        26: aload_3
+        27: invokevirtual #34                 // Method org/apache/xml/security/transforms/Transforms.getLength:()I
+        30: if_icmpge     82
+        33: aload_3
+        34: iload         4
+        36: invokevirtual #88                 // Method org/apache/xml/security/transforms/Transforms.item:(I)Lorg/apache/xml/security/transforms/Transform;
+        39: astore        5
+        41: aload         5
+        43: invokevirtual #89                 // Method org/apache/xml/security/transforms/Transform.getURI:()Ljava/lang/String;
+        46: astore        6
+        48: getstatic     #90                 // Field TRANSFORM_ALGORITHMS:Ljava/util/Set;
+        51: aload         6
+        53: invokeinterface #91,  2           // InterfaceMethod java/util/Set.contains:(Ljava/lang/Object;)Z
+        58: ifeq          64
+        61: goto          82
+        64: aload         5
+        66: aload_2
+        67: aconst_null
+        68: aload_0
+        69: getfield      #6                  // Field secureValidation:Z
+        72: invokevirtual #92                 // Method org/apache/xml/security/transforms/Transform.performTransform:(Lorg/apache/xml/security/signature/XMLSignatureInput;Ljava/io/OutputStream;Z)Lorg/apache/xml/security/signature/XMLSignatureInput;
+        75: astore_2
+        76: iinc          4, 1
+        79: goto          24
+        82: aload_2
+        83: aload_1
+        84: invokevirtual #93                 // Method org/apache/xml/security/signature/XMLSignatureInput.getSourceURI:()Ljava/lang/String;
+        87: invokevirtual #94                 // Method org/apache/xml/security/signature/XMLSignatureInput.setSourceURI:(Ljava/lang/String;)V
+        90: aload_2
+        91: areturn
+        92: astore_1
+        93: new           #51                 // class org/apache/xml/security/signature/XMLSignatureException
+        96: dup
+        97: aload_1
+        98: invokespecial #84                 // Method org/apache/xml/security/signature/XMLSignatureException."<init>":(Ljava/lang/Exception;)V
+       101: athrow
+      Exception table:
+         from    to  target type
+             0    91    92   Class java/io/IOException
+             0    91    92   Class org/apache/xml/security/exceptions/XMLSecurityException
+
+  public java.lang.String getHTMLRepresentation() throws org.apache.xml.security.signature.XMLSignatureException;
+    Code:
+         0: aload_0
+         1: invokevirtual #96                 // Method getNodesetBeforeFirstCanonicalization:()Lorg/apache/xml/security/signature/XMLSignatureInput;
+         4: astore_1
+         5: aload_0
+         6: invokevirtual #81                 // Method getTransforms:()Lorg/apache/xml/security/transforms/Transforms;
+         9: astore_2
+        10: aconst_null
+        11: astore_3
+        12: aload_2
+        13: ifnull        75
+        16: iconst_0
+        17: istore        4
+        19: iload         4
+        21: aload_2
+        22: invokevirtual #34                 // Method org/apache/xml/security/transforms/Transforms.getLength:()I
+        25: if_icmpge     75
+        28: aload_2
+        29: iload         4
+        31: invokevirtual #88                 // Method org/apache/xml/security/transforms/Transforms.item:(I)Lorg/apache/xml/security/transforms/Transform;
+        34: astore        5
+        36: aload         5
+        38: invokevirtual #89                 // Method org/apache/xml/security/transforms/Transform.getURI:()Ljava/lang/String;
+        41: astore        6
+        43: aload         6
+        45: ldc           #97                 // String http://www.w3.org/2001/10/xml-exc-c14n#
+        47: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+        50: ifne          63
+        53: aload         6
+        55: ldc           #98                 // String http://www.w3.org/2001/10/xml-exc-c14n#WithComments
+        57: invokevirtual #28                 // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+        60: ifeq          69
+        63: aload         5
+        65: astore_3
+        66: goto          75
+        69: iinc          4, 1
+        72: goto          19
+        75: new           #99                 // class java/util/HashSet
+        78: dup
+        79: invokespecial #100                // Method java/util/HashSet."<init>":()V
+        82: astore        4
+        84: aload_3
+        85: ifnull        140
+        88: aload_3
+        89: ldc           #97                 // String http://www.w3.org/2001/10/xml-exc-c14n#
+        91: ldc           #102                // String InclusiveNamespaces
+        93: invokevirtual #103                // Method org/apache/xml/security/transforms/Transform.length:(Ljava/lang/String;Ljava/lang/String;)I
+        96: iconst_1
+        97: if_icmpne     140
+       100: new           #101                // class org/apache/xml/security/transforms/params/InclusiveNamespaces
+       103: dup
+       104: aload_3
+       105: invokevirtual #104                // Method org/apache/xml/security/transforms/Transform.getElement:()Lorg/w3c/dom/Element;
+       108: invokeinterface #24,  1           // InterfaceMethod org/w3c/dom/Element.getFirstChild:()Lorg/w3c/dom/Node;
+       113: ldc           #97                 // String http://www.w3.org/2001/10/xml-exc-c14n#
+       115: ldc           #102                // String InclusiveNamespaces
+       117: iconst_0
+       118: invokestatic  #105                // Method org/apache/xml/security/utils/XMLUtils.selectNode:(Lorg/w3c/dom/Node;Ljava/lang/String;Ljava/lang/String;I)Lorg/w3c/dom/Element;
+       121: aload_0
+       122: invokevirtual #106                // Method getBaseURI:()Ljava/lang/String;
+       125: invokespecial #107                // Method org/apache/xml/security/transforms/params/InclusiveNamespaces."<init>":(Lorg/w3c/dom/Element;Ljava/lang/String;)V
+       128: astore        5
+       130: aload         5
+       132: invokevirtual #108                // Method org/apache/xml/security/transforms/params/InclusiveNamespaces.getInclusiveNamespaces:()Ljava/lang/String;
+       135: invokestatic  #109                // Method org/apache/xml/security/transforms/params/InclusiveNamespaces.prefixStr2Set:(Ljava/lang/String;)Ljava/util/SortedSet;
+       138: astore        4
+       140: aload_1
+       141: aload         4
+       143: invokevirtual #110                // Method org/apache/xml/security/signature/XMLSignatureInput.getHTMLRepresentation:(Ljava/util/Set;)Ljava/lang/String;
+       146: areturn
+       147: astore_1
+       148: new           #51                 // class org/apache/xml/security/signature/XMLSignatureException
+       151: dup
+       152: aload_1
+       153: invokespecial #84                 // Method org/apache/xml/security/signature/XMLSignatureException."<init>":(Ljava/lang/Exception;)V
+       156: athrow
+      Exception table:
+         from    to  target type
+             0   146   147   Class org/apache/xml/security/exceptions/XMLSecurityException
+
+  public org.apache.xml.security.signature.XMLSignatureInput getTransformsOutput();
+    Code:
+         0: aload_0
+         1: getfield      #83                 // Field transformsOutput:Lorg/apache/xml/security/signature/XMLSignatureInput;
+         4: areturn
+
+  public org.apache.xml.security.signature.reference.ReferenceData getReferenceData();
+    Code:
+         0: aload_0
+         1: getfield      #111                // Field referenceData:Lorg/apache/xml/security/signature/reference/ReferenceData;
+         4: areturn
+
+  protected org.apache.xml.security.signature.XMLSignatureInput dereferenceURIandPerformTransforms(java.io.OutputStream) throws org.apache.xml.security.signature.XMLSignatureException;
+    Code:
+         0: aload_0
+         1: invokevirtual #85                 // Method getContentsBeforeTransformation:()Lorg/apache/xml/security/signature/XMLSignatureInput;
+         4: astore_2
+         5: aload_0
+         6: aload_2
+         7: invokespecial #86                 // Method cacheDereferencedElement:(Lorg/apache/xml/security/signature/XMLSignatureInput;)V
+        10: aload_0
+        11: aload_2
+        12: aload_1
+        13: invokespecial #87                 // Method getContentsAfterTransformation:(Lorg/apache/xml/security/signature/XMLSignatureInput;Ljava/io/OutputStream;)Lorg/apache/xml/security/signature/XMLSignatureInput;
+        16: astore_3
+        17: aload_0
+        18: aload_3
+        19: putfield      #83                 // Field transformsOutput:Lorg/apache/xml/security/signature/XMLSignatureInput;
+        22: aload_3
+        23: areturn
+        24: astore_2
+        25: new           #79                 // class org/apache/xml/security/signature/ReferenceNotInitializedException
+        28: dup
+        29: aload_2
+        30: invokespecial #80                 // Method org/apache/xml/security/signature/ReferenceNotInitializedException."<init>":(Ljava/lang/Exception;)V
+        33: athrow
+      Exception table:
+         from    to  target type
+             0    23    24   Class org/apache/xml/security/exceptions/XMLSecurityException
+
+  public org.apache.xml.security.transforms.Transforms getTransforms() throws org.apache.xml.security.signature.XMLSignatureException, org.apache.xml.security.transforms.InvalidTransformException, org.apache.xml.security.transforms.TransformationException, org.apache.xml.security.exceptions.XMLSecurityException;
+    Code:
+         0: aload_0
+         1: getfield      #11                 // Field transforms:Lorg/apache/xml/security/transforms/Transforms;
+         4: areturn
+
+  public byte[] getReferencedBytes() throws org.apache.xml.security.signature.ReferenceNotInitializedException, org.apache.xml.security.signature.XMLSignatureException;
+    Code:
+         0: aload_0
+         1: aconst_null
+         2: invokevirtual #136                // Method dereferenceURIandPerformTransforms:(Ljava/io/OutputStream;)Lorg/apache/xml/security/signature/XMLSignatureInput;
+         5: astore_1
+         6: aload_1
+         7: invokevirtual #137                // Method org/apache/xml/security/signature/XMLSignatureInput.getBytes:()[B
+        10: areturn
+        11: astore_1
+        12: new           #79                 // class org/apache/xml/security/signature/ReferenceNotInitializedException
+        15: dup
+        16: aload_1
+        17: invokespecial #80                 // Method org/apache/xml/security/signature/ReferenceNotInitializedException."<init>":(Ljava/lang/Exception;)V
+        20: athrow
+      Exception table:
+         from    to  target type
+             0    10    11   Class java/io/IOException
+             0    10    11   Class org/apache/xml/security/c14n/CanonicalizationException
+
+  public byte[] getDigestValue() throws org.apache.xml.security.exceptions.XMLSecurityException;
+    Code:
+         0: aload_0
+         1: getfield      #21                 // Field digestValueElement:Lorg/w3c/dom/Element;
+         4: ifnonnull     33
+         7: iconst_2
+         8: anewarray     #36                 // class java/lang/Object
+        11: dup
+        12: iconst_0
+        13: ldc           #19                 // String DigestValue
+        15: aastore
+        16: dup
+        17: iconst_1
+        18: ldc           #29                 // String http://www.w3.org/2000/09/xmldsig#
+        20: aastore
+        21: astore_1
+        22: new           #38                 // class org/apache/xml/security/exceptions/XMLSecurityException
+        25: dup
+        26: ldc           #165                // String signature.Verification.NoSignatureElement
+        28: aload_1
+        29: invokespecial #40                 // Method org/apache/xml/security/exceptions/XMLSecurityException."<init>":(Ljava/lang/String;[Ljava/lang/Object;)V
+        32: athrow
+        33: aload_0
+        34: getfield      #21                 // Field digestValueElement:Lorg/w3c/dom/Element;
+        37: invokestatic  #166                // Method org/apache/xml/security/utils/XMLUtils.getFullTextChildrenFromNode:(Lorg/w3c/dom/Node;)Ljava/lang/String;
+        40: astore_1
+        41: aload_1
+        42: invokestatic  #164                // Method org/apache/xml/security/utils/XMLUtils.decode:(Ljava/lang/String;)[B
+        45: areturn
+
+  public boolean verify() throws org.apache.xml.security.signature.ReferenceNotInitializedException, org.apache.xml.security.exceptions.XMLSecurityException;
+    Code:
+         0: aload_0
+         1: invokevirtual #167                // Method getDigestValue:()[B
+         4: astore_1
+         5: aload_0
+         6: iconst_1
+         7: invokespecial #69                 // Method calculateDigest:(Z)[B
+        10: astore_2
+        11: aload_1
+        12: aload_2
+        13: invokestatic  #168                // Method org/apache/xml/security/algorithms/MessageDigestAlgorithm.isEqual:([B[B)Z
+        16: istore_3
+        17: iload_3
+        18: ifne          119
+        21: getstatic     #117                // Field LOG:Lorg/slf4j/Logger;
+        24: new           #118                // class java/lang/StringBuilder
+        27: dup
+        28: invokespecial #119                // Method java/lang/StringBuilder."<init>":()V
+        31: ldc           #169                // String Verification failed for URI \"
+        33: invokevirtual #121                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        36: aload_0
+        37: invokevirtual #170                // Method getURI:()Ljava/lang/String;
+        40: invokevirtual #121                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        43: ldc           #171                // String \"
+        45: invokevirtual #121                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        48: invokevirtual #123                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+        51: invokeinterface #124,  2          // InterfaceMethod org/slf4j/Logger.warn:(Ljava/lang/String;)V
+        56: getstatic     #117                // Field LOG:Lorg/slf4j/Logger;
+        59: new           #118                // class java/lang/StringBuilder
+        62: dup
+        63: invokespecial #119                // Method java/lang/StringBuilder."<init>":()V
+        66: ldc           #172                // String Expected Digest:
+        68: invokevirtual #121                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        71: aload_1
+        72: invokestatic  #66                 // Method org/apache/xml/security/utils/XMLUtils.encodeToString:([B)Ljava/lang/String;
+        75: invokevirtual #121                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        78: invokevirtual #123                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+        81: invokeinterface #124,  2          // InterfaceMethod org/slf4j/Logger.warn:(Ljava/lang/String;)V
+        86: getstatic     #117                // Field LOG:Lorg/slf4j/Logger;
+        89: new           #118                // class java/lang/StringBuilder
+        92: dup
+        93: invokespecial #119                // Method java/lang/StringBuilder."<init>":()V
+        96: ldc           #173                // String Actual Digest:
+        98: invokevirtual #121                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+       101: aload_2
+       102: invokestatic  #66                 // Method org/apache/xml/security/utils/XMLUtils.encodeToString:([B)Ljava/lang/String;
+       105: invokevirtual #121                // Method java/lang/StringBuilder.append:(Ljava/lang/String;)Ljava/lang/StringBuilder;
+       108: invokevirtual #123                // Method java/lang/StringBuilder.toString:()Ljava/lang/String;
+       111: invokeinterface #124,  2          // InterfaceMethod org/slf4j/Logger.warn:(Ljava/lang/String;)V
+       116: goto          133
+       119: getstatic     #117                // Field LOG:Lorg/slf4j/Logger;
+       122: ldc           #174                // String Verification successful for URI \"{}\"
+       124: aload_0
+       125: invokevirtual #170                // Method getURI:()Ljava/lang/String;
+       128: invokeinterface #175,  3          // InterfaceMethod org/slf4j/Logger.debug:(Ljava/lang/String;Ljava/lang/Object;)V
+       133: iload_3
+       134: ireturn
+
+  public java.lang.String getBaseLocalName();
+    Code:
+         0: ldc           #176                // String Reference
+         2: areturn
+
+  static {};
+    Code:
+         0: invokedynamic #180,  0            // InvokeDynamic #0:run:()Ljava/security/PrivilegedAction;
+         5: invokestatic  #181                // Method java/security/AccessController.doPrivileged:(Ljava/security/PrivilegedAction;)Ljava/lang/Object;
+         8: checkcast     #182                // class java/lang/Boolean
+        11: invokevirtual #183                // Method java/lang/Boolean.booleanValue:()Z
+        14: putstatic     #147                // Field useC14N11:Z
+        17: ldc           #35                 // class org/apache/xml/security/signature/Reference
+        19: invokestatic  #184                // Method org/slf4j/LoggerFactory.getLogger:(Ljava/lang/Class;)Lorg/slf4j/Logger;
+        22: putstatic     #117                // Field LOG:Lorg/slf4j/Logger;
+        25: new           #99                 // class java/util/HashSet
+        28: dup
+        29: invokespecial #100                // Method java/util/HashSet."<init>":()V
+        32: astore_0
+        33: aload_0
+        34: ldc           #97                 // String http://www.w3.org/2001/10/xml-exc-c14n#
+        36: invokeinterface #185,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+        41: pop
+        42: aload_0
+        43: ldc           #98                 // String http://www.w3.org/2001/10/xml-exc-c14n#WithComments
+        45: invokeinterface #185,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+        50: pop
+        51: aload_0
+        52: ldc           #186                // String http://www.w3.org/TR/2001/REC-xml-c14n-20010315
+        54: invokeinterface #185,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+        59: pop
+        60: aload_0
+        61: ldc           #187                // String http://www.w3.org/TR/2001/REC-xml-c14n-20010315#WithComments
+        63: invokeinterface #185,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+        68: pop
+        69: aload_0
+        70: ldc           #152                // String http://www.w3.org/2006/12/xml-c14n11
+        72: invokeinterface #185,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+        77: pop
+        78: aload_0
+        79: ldc           #188                // String http://www.w3.org/2006/12/xml-c14n11#WithComments
+        81: invokeinterface #185,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+        86: pop
+        87: aload_0
+        88: invokestatic  #189                // Method java/util/Collections.unmodifiableSet:(Ljava/util/Set;)Ljava/util/Set;
+        91: putstatic     #90                 // Field TRANSFORM_ALGORITHMS:Ljava/util/Set;
+        94: return
+}

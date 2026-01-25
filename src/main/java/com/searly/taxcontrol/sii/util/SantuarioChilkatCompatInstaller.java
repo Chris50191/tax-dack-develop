@@ -64,6 +64,12 @@ public final class SantuarioChilkatCompatInstaller {
                     String c14nUri = org.apache.xml.security.transforms.Transforms.TRANSFORM_C14N_OMIT_COMMENTS;
                     map.put(c14nUri, spi);
                     map.put(TransformC14NChilkatHybrid.URI, spi);
+
+                    boolean debug = Boolean.parseBoolean(System.getProperty("hybrid.debug", "false"));
+                    if (debug) {
+                        Object vv = map.get(c14nUri);
+                        System.out.println("[hybrid] Installer: transformSpiHash[" + c14nUri + "]=" + (vv == null ? "null" : vv.getClass().getName()));
+                    }
                 }
             } catch (Exception ignored) {
             }
@@ -82,6 +88,12 @@ public final class SantuarioChilkatCompatInstaller {
                     Map<String, Class<?>> map = (Map<String, Class<?>>) v;
                     map.put(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS, CanonicalizerChilkatHybrid.class);
                     map.put(CanonicalizerChilkatHybrid.URI, CanonicalizerChilkatHybrid.class);
+
+                    boolean debug = Boolean.parseBoolean(System.getProperty("hybrid.debug", "false"));
+                    if (debug) {
+                        Class<?> cc = map.get(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
+                        System.out.println("[hybrid] Installer: canonicalizerHash[" + Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS + "]=" + (cc == null ? "null" : cc.getName()));
+                    }
                 }
             } catch (Exception ignored) {
             }

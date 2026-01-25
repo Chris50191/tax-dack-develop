@@ -1,0 +1,136 @@
+Compiled from "TransformC14N.java"
+public class org.apache.xml.security.transforms.implementations.TransformC14N extends org.apache.xml.security.transforms.TransformSpi {
+  public org.apache.xml.security.transforms.implementations.TransformC14N();
+    Code:
+         0: aload_0
+         1: invokespecial #1                  // Method org/apache/xml/security/transforms/TransformSpi."<init>":()V
+         4: return
+
+  protected java.lang.String engineGetURI();
+    Code:
+         0: ldc           #3                  // String http://www.w3.org/TR/2001/REC-xml-c14n-20010315
+         2: areturn
+
+  protected org.apache.xml.security.signature.XMLSignatureInput enginePerformTransform(org.apache.xml.security.signature.XMLSignatureInput, java.io.OutputStream, org.w3c.dom.Element, java.lang.String, boolean) throws org.apache.xml.security.c14n.CanonicalizationException;
+    Code:
+         0: aload_0
+         1: invokevirtual #4                  // Method getCanonicalizer:()Lorg/apache/xml/security/c14n/implementations/Canonicalizer20010315;
+         4: astore        6
+         6: aload_2
+         7: ifnonnull     184
+        10: aload_1
+        11: invokevirtual #5                  // Method org/apache/xml/security/signature/XMLSignatureInput.isOctetStream:()Z
+        14: ifne          31
+        17: aload_1
+        18: invokevirtual #6                  // Method org/apache/xml/security/signature/XMLSignatureInput.isElement:()Z
+        21: ifne          31
+        24: aload_1
+        25: invokevirtual #7                  // Method org/apache/xml/security/signature/XMLSignatureInput.isNodeSet:()Z
+        28: ifeq          184
+        31: new           #8                  // class java/io/ByteArrayOutputStream
+        34: dup
+        35: invokespecial #9                  // Method java/io/ByteArrayOutputStream."<init>":()V
+        38: astore        7
+        40: aconst_null
+        41: astore        8
+        43: aload         6
+        45: aload_1
+        46: aload         7
+        48: iload         5
+        50: invokevirtual #10                 // Method org/apache/xml/security/c14n/implementations/Canonicalizer20010315.engineCanonicalize:(Lorg/apache/xml/security/signature/XMLSignatureInput;Ljava/io/OutputStream;Z)V
+        53: aload         7
+        55: invokevirtual #11                 // Method java/io/ByteArrayOutputStream.flush:()V
+        58: new           #12                 // class org/apache/xml/security/signature/XMLSignatureInput
+        61: dup
+        62: aload         7
+        64: invokevirtual #13                 // Method java/io/ByteArrayOutputStream.toByteArray:()[B
+        67: invokespecial #14                 // Method org/apache/xml/security/signature/XMLSignatureInput."<init>":([B)V
+        70: astore        9
+        72: aload         9
+        74: iload         5
+        76: invokevirtual #15                 // Method org/apache/xml/security/signature/XMLSignatureInput.setSecureValidation:(Z)V
+        79: aload         9
+        81: astore        10
+        83: aload         8
+        85: ifnull        108
+        88: aload         7
+        90: invokevirtual #16                 // Method java/io/ByteArrayOutputStream.close:()V
+        93: goto          113
+        96: astore        11
+        98: aload         8
+       100: aload         11
+       102: invokevirtual #18                 // Method java/lang/Throwable.addSuppressed:(Ljava/lang/Throwable;)V
+       105: goto          113
+       108: aload         7
+       110: invokevirtual #16                 // Method java/io/ByteArrayOutputStream.close:()V
+       113: aload         10
+       115: areturn
+       116: astore        9
+       118: aload         9
+       120: astore        8
+       122: aload         9
+       124: athrow
+       125: astore        12
+       127: aload         8
+       129: ifnull        152
+       132: aload         7
+       134: invokevirtual #16                 // Method java/io/ByteArrayOutputStream.close:()V
+       137: goto          157
+       140: astore        13
+       142: aload         8
+       144: aload         13
+       146: invokevirtual #18                 // Method java/lang/Throwable.addSuppressed:(Ljava/lang/Throwable;)V
+       149: goto          157
+       152: aload         7
+       154: invokevirtual #16                 // Method java/io/ByteArrayOutputStream.close:()V
+       157: aload         12
+       159: athrow
+       160: astore        7
+       162: new           #20                 // class org/apache/xml/security/c14n/CanonicalizationException
+       165: dup
+       166: ldc           #21                 // String empty
+       168: iconst_1
+       169: anewarray     #22                 // class java/lang/Object
+       172: dup
+       173: iconst_0
+       174: aload         7
+       176: invokevirtual #23                 // Method java/io/IOException.getMessage:()Ljava/lang/String;
+       179: aastore
+       180: invokespecial #24                 // Method org/apache/xml/security/c14n/CanonicalizationException."<init>":(Ljava/lang/String;[Ljava/lang/Object;)V
+       183: athrow
+       184: aload         6
+       186: aload_1
+       187: aload_2
+       188: iload         5
+       190: invokevirtual #10                 // Method org/apache/xml/security/c14n/implementations/Canonicalizer20010315.engineCanonicalize:(Lorg/apache/xml/security/signature/XMLSignatureInput;Ljava/io/OutputStream;Z)V
+       193: new           #12                 // class org/apache/xml/security/signature/XMLSignatureInput
+       196: dup
+       197: aconst_null
+       198: checkcast     #25                 // class "[B"
+       201: invokespecial #14                 // Method org/apache/xml/security/signature/XMLSignatureInput."<init>":([B)V
+       204: astore        7
+       206: aload         7
+       208: iload         5
+       210: invokevirtual #15                 // Method org/apache/xml/security/signature/XMLSignatureInput.setSecureValidation:(Z)V
+       213: aload         7
+       215: aload_2
+       216: invokevirtual #26                 // Method org/apache/xml/security/signature/XMLSignatureInput.setOutputStream:(Ljava/io/OutputStream;)V
+       219: aload         7
+       221: areturn
+      Exception table:
+         from    to  target type
+            88    93    96   Class java/lang/Throwable
+            43    83   116   Class java/lang/Throwable
+            43    83   125   any
+           132   137   140   Class java/lang/Throwable
+           116   127   125   any
+            31   113   160   Class java/io/IOException
+           116   160   160   Class java/io/IOException
+
+  protected org.apache.xml.security.c14n.implementations.Canonicalizer20010315 getCanonicalizer();
+    Code:
+         0: new           #27                 // class org/apache/xml/security/c14n/implementations/Canonicalizer20010315OmitComments
+         3: dup
+         4: invokespecial #28                 // Method org/apache/xml/security/c14n/implementations/Canonicalizer20010315OmitComments."<init>":()V
+         7: areturn
+}

@@ -68,24 +68,29 @@ public class TransformC14NChilkatHybrid extends TransformSpi {
                         + ", algo=" + algo);
             }
 
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Canonicalizer.getInstance(algo).canonicalizeSubtree(target, baos);
-            byte[] out = baos.toByteArray();
+            if (os == null) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                Canonicalizer.getInstance(algo).canonicalizeSubtree(target, baos);
+                byte[] out = baos.toByteArray();
 
-            if (debug) {
-                try {
-                    String sha1b64 = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(out));
-                    System.out.println("[hybrid] TransformC14NChilkatHybrid: outLen=" + out.length + ", outSha1=" + sha1b64);
-                } catch (Exception ignored) {
+                if (debug) {
+                    try {
+                        String sha1b64 = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(out));
+                        System.out.println("[hybrid] TransformC14NChilkatHybrid: outLen=" + out.length + ", outSha1=" + sha1b64);
+                    } catch (Exception ignored) {
+                    }
                 }
+
+                XMLSignatureInput result = new XMLSignatureInput(out);
+                result.setSecureValidation(secureValidation);
+                return result;
             }
 
-            if (os != null) {
-                os.write(out);
-            }
-
-            XMLSignatureInput result = new XMLSignatureInput(out);
+            // 管道模式：仿照 Santuario 内置 TransformC14N 行为，只写 OutputStream，返回 XMLSignatureInput(null) 并设置 outputStream。
+            Canonicalizer.getInstance(algo).canonicalizeSubtree(target, os);
+            XMLSignatureInput result = new XMLSignatureInput((byte[]) null);
             result.setSecureValidation(secureValidation);
+            result.setOutputStream(os);
             return result;
         } catch (Exception e) {
             throw new TransformationException(e);
