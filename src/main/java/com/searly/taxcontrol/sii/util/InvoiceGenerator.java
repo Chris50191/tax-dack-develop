@@ -177,6 +177,8 @@ public class InvoiceGenerator {
             throw new IllegalStateException("签名器已被限制为 Chilkat。如需对照实验，请设置 -Dsii.allowNonChilkatSigner=true 且显式指定 -Dsii.signer=...。");
         }
 
+        boolean santuarioCompat = signer != null && signer.trim().equalsIgnoreCase("santuario-chilkat-compat");
+
         if (signer != null && signer.trim().equalsIgnoreCase("chilkat")) {
             Element setEl = (Element) doc.getElementsByTagName("SetDTE").item(0);
             if (setEl == null) {
@@ -1011,6 +1013,8 @@ public class InvoiceGenerator {
             throw new IllegalStateException("签名器已被限制为 Chilkat。如需对照实验，请设置 -Dsii.allowNonChilkatSigner=true 且显式指定 -Dsii.signer=...。");
         }
 
+        boolean santuarioCompat = signer != null && signer.trim().equalsIgnoreCase("santuario-chilkat-compat");
+
         if (signer != null && signer.trim().equalsIgnoreCase("xmlsec")) {
             String distro = System.getProperty("wsl.distro", "Ubuntu");
 
@@ -1179,8 +1183,12 @@ public class InvoiceGenerator {
             return finalXml;
         }
 
+        if (santuarioCompat) {
+            SantuarioChilkatCompatInstaller.install();
+        }
+
         // ======== 内部签名 (Documento) ========
-        signXmlForSiiSantuario(doc, "Documento", privateKeyEmisor, certChainEmisor);
+        signXmlForSiiSantuario(doc, "Documento", privateKeyEmisor, certChainEmisor, santuarioCompat);
 
         // 固定内层签名的最终序列化形态，避免外层签名摘要与最终输出不一致
         // 注意：signXmlForSii 开启了 SignatureValue.wrap。
@@ -1190,7 +1198,7 @@ public class InvoiceGenerator {
         normalizeCarriageReturnsInTextNodes(doc);
 
         // ======== 外部签名 (SetDTE) ========
-        signXmlForSiiOutSantuario(doc, "SetDTE", privateKeyEnvia, certChainEnvia);
+        signXmlForSiiOutSantuario(doc, "SetDTE", privateKeyEnvia, certChainEnvia, santuarioCompat);
 
         // 自动验签 (本地诊断)
         validateSignatures(doc);
@@ -1710,6 +1718,10 @@ public class InvoiceGenerator {
     }
 
     private static void signXmlForSiiSantuario(Document doc, String tagName, PrivateKey privateKey, List<X509Certificate> certChain) throws Exception {
+        signXmlForSiiSantuario(doc, tagName, privateKey, certChain, false);
+    }
+
+    private static void signXmlForSiiSantuario(Document doc, String tagName, PrivateKey privateKey, List<X509Certificate> certChain, boolean santuarioCompat) throws Exception {
         Init.init();
 
         Element target = (Element) doc.getElementsByTagName(tagName).item(0);
@@ -1744,7 +1756,11 @@ public class InvoiceGenerator {
         }
 
         Transforms transforms = new Transforms(doc);
-        transforms.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE);
+        if (santuarioCompat) {
+            transforms.addTransform(Transforms.TRANSFORM_C14N_OMIT_COMMENTS);
+        } else {
+            transforms.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE);
+        }
         sig.addDocument("#" + idValue, transforms, org.apache.xml.security.utils.Constants.ALGO_ID_DIGEST_SHA1);
 
         // KeyInfo: 按 SII Schema 顺序输出 KeyValue -> X509Data（仅放 leaf 证书，避免 Schema: LSX-00204）
@@ -1757,6 +1773,10 @@ public class InvoiceGenerator {
     }
 
     private static void signXmlForSiiOutSantuario(Document doc, String tagName, PrivateKey privateKey, List<X509Certificate> certChain) throws Exception {
+        signXmlForSiiOutSantuario(doc, tagName, privateKey, certChain, false);
+    }
+
+    private static void signXmlForSiiOutSantuario(Document doc, String tagName, PrivateKey privateKey, List<X509Certificate> certChain, boolean santuarioCompat) throws Exception {
         Init.init();
 
         Element target = (Element) doc.getElementsByTagName(tagName).item(0);
@@ -1790,7 +1810,11 @@ public class InvoiceGenerator {
         }
 
         Transforms transforms = new Transforms(doc);
-        transforms.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE);
+        if (santuarioCompat) {
+            transforms.addTransform(Transforms.TRANSFORM_C14N_OMIT_COMMENTS);
+        } else {
+            transforms.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE);
+        }
         sig.addDocument("#" + idValue, transforms, org.apache.xml.security.utils.Constants.ALGO_ID_DIGEST_SHA1);
 
         // KeyInfo: 按 SII Schema 顺序输出 KeyValue -> X509Data（仅放 leaf 证书，避免 Schema: LSX-00204）
