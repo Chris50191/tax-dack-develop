@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,6 +60,20 @@ public class SingleCaseSendAndQuery {
         boolean onlyGenerate = Boolean.parseBoolean(System.getProperty("sii.onlyGenerate", "false"));
         boolean generateAllCases = Boolean.parseBoolean(System.getProperty("sii.generateAllCases", "false"));
 
+        String caseNameOverride = System.getProperty("sii.caseName");
+        String batchUnitPricesRaw = System.getProperty("sii.batchUnitPrices");
+        Integer caseQtyOverride = null;
+        try {
+            String q = System.getProperty("sii.caseQty");
+            if (q != null && !q.trim().isEmpty()) {
+                caseQtyOverride = Integer.parseInt(q.trim());
+            }
+        } catch (Exception ignored) {
+            caseQtyOverride = null;
+        }
+
+        List<Integer> batchUnitPrices = parseCsvInts(batchUnitPricesRaw);
+
         int folio = nextFolio(folioCounterPath, folioStart, folioEnd);
 
         if (onlyGenerate) {
@@ -78,7 +93,7 @@ public class SingleCaseSendAndQuery {
                 return;
             }
 
-            SetBasicoCaseFactory.CaseSpec spec = pickSingleCase();
+            SetBasicoCaseFactory.CaseSpec spec = pickCase(caseNameOverride);
             InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(cfg, String.valueOf(folio), spec.caseName, spec.lines);
             System.out.println("SingleCaseSendAndQuery: Folio=" + folio + ", Case=" + spec.caseName + ", CAF=" + cafPath.toAbsolutePath());
             generateOnly(cfg, invoiceData, cafBytes);
@@ -90,8 +105,39 @@ public class SingleCaseSendAndQuery {
             throw new IllegalArgumentException("sii.generateAllCases 仅支持在 sii.onlyGenerate=true 下使用，避免误发 5 张到 SII");
         }
 
-        SetBasicoCaseFactory.CaseSpec spec = pickSingleCase();
-        InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(cfg, String.valueOf(folio), spec.caseName, spec.lines);
+        SetBasicoCaseFactory.CaseSpec spec = pickCase(caseNameOverride);
+
+        if (batchUnitPrices != null && !batchUnitPrices.isEmpty()) {
+            int current = folio;
+            for (Integer price : batchUnitPrices) {
+                if (price == null) {
+                    continue;
+                }
+                InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(
+                        cfg,
+                        String.valueOf(current),
+                        spec.caseName,
+                        overrideLines(spec.lines, price, caseQtyOverride)
+                );
+                System.out.println("SingleCaseSendAndQuery(批量发送): Folio=" + current + ", Case=" + spec.caseName + ", unitPrice=" + price + ", CAF=" + cafPath.toAbsolutePath());
+
+                InvoiceSendRequest request = buildRequest(invoiceData, cafBytes);
+                ResultadoEnvioPost envioPost = sendSingleInvoice(request);
+                if (envioPost == null) {
+                    throw new IllegalStateException("发送失败：ResultadoEnvioPost 为空");
+                }
+                persistSendArtifacts(envioPost);
+                if (envioPost.getTrackId() != null) {
+                    queryWithRetry(envioPost.getRutEmisor(), String.valueOf(envioPost.getTrackId()), InvoiceGenerator.getLastSavedXmlPath());
+                }
+
+                current++;
+                persistNextFolio(folioCounterPath, current, folioStart, folioEnd);
+            }
+            return;
+        }
+
+        InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(cfg, String.valueOf(folio), spec.caseName, overrideLines(spec.lines, null, caseQtyOverride));
         System.out.println("SingleCaseSendAndQuery: Folio=" + folio + ", Case=" + spec.caseName + ", CAF=" + cafPath.toAbsolutePath());
 
         InvoiceSendRequest request = buildRequest(invoiceData, cafBytes);
@@ -146,12 +192,67 @@ public class SingleCaseSendAndQuery {
         }
     }
 
-    private static SetBasicoCaseFactory.CaseSpec pickSingleCase() {
+    private static SetBasicoCaseFactory.CaseSpec pickCase(String caseNameOverride) {
         List<SetBasicoCaseFactory.CaseSpec> cases = SetBasicoCaseFactory.getCases();
         if (cases == null || cases.isEmpty()) {
             throw new IllegalStateException("未找到 SetBasico 的案例列表");
         }
-        return cases.get(0);
+        if (caseNameOverride == null || caseNameOverride.trim().isEmpty()) {
+            return cases.get(0);
+        }
+        String want = caseNameOverride.trim();
+        for (SetBasicoCaseFactory.CaseSpec c : cases) {
+            if (c != null && c.caseName != null && c.caseName.equalsIgnoreCase(want)) {
+                return c;
+            }
+        }
+        throw new IllegalArgumentException("未找到 Case: " + want + "（可选: CASO-1..CASO-5）");
+    }
+
+    private static List<SetBasicoCaseFactory.Line> overrideLines(List<SetBasicoCaseFactory.Line> lines, Integer unitPriceWithIva, Integer qtyOverride) {
+        if (lines == null || lines.isEmpty()) {
+            return lines;
+        }
+        boolean hasOverride = (unitPriceWithIva != null) || (qtyOverride != null);
+        if (!hasOverride) {
+            return lines;
+        }
+        List<SetBasicoCaseFactory.Line> out = new ArrayList<>();
+        for (SetBasicoCaseFactory.Line l : lines) {
+            if (l == null) {
+                continue;
+            }
+            int q = qtyOverride == null ? l.qty : qtyOverride;
+            java.math.BigDecimal price = unitPriceWithIva == null ? l.unitPriceWithIva : new java.math.BigDecimal(unitPriceWithIva);
+            out.add(new SetBasicoCaseFactory.Line(l.name, q, price, l.exento, l.unmdItem));
+        }
+        return out;
+    }
+
+    private static List<Integer> parseCsvInts(String raw) {
+        if (raw == null) {
+            return new ArrayList<>();
+        }
+        String t = raw.trim();
+        if (t.isEmpty()) {
+            return new ArrayList<>();
+        }
+        String[] parts = t.split(",");
+        List<Integer> out = new ArrayList<>();
+        for (String p : parts) {
+            if (p == null) {
+                continue;
+            }
+            String s = p.trim();
+            if (s.isEmpty()) {
+                continue;
+            }
+            try {
+                out.add(Integer.parseInt(s));
+            } catch (Exception ignored) {
+            }
+        }
+        return out;
     }
 
     private static InvoiceSendRequest buildRequest(InvoiceData invoiceData, byte[] cafBytes) {

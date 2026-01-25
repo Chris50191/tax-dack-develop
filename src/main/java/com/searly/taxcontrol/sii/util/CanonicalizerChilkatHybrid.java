@@ -37,14 +37,31 @@ public class CanonicalizerChilkatHybrid extends CanonicalizerSpi {
 
     @Override
     public void engineCanonicalizeXPathNodeSet(Set<Node> xpathNodeSet, OutputStream writer) throws CanonicalizationException {
-        // 对 nodeSet 无法可靠判断上下文；默认走标准 inclusive。
-        inclusive.engineCanonicalizeXPathNodeSet(xpathNodeSet, writer);
+        boolean useExcl = shouldUseExclusiveForNodeSet(xpathNodeSet);
+        boolean debug = Boolean.parseBoolean(System.getProperty("hybrid.debug", "false"));
+        if (debug) {
+            System.out.println("[hybrid] CanonicalizerChilkatHybrid: method=XPathNodeSet useExclusive=" + useExcl + " nodeCount=" + (xpathNodeSet == null ? -1 : xpathNodeSet.size()));
+        }
+        if (useExcl) {
+            exclusive.engineCanonicalizeXPathNodeSet(xpathNodeSet, writer);
+        } else {
+            inclusive.engineCanonicalizeXPathNodeSet(xpathNodeSet, writer);
+        }
     }
 
     @Override
     public void engineCanonicalizeXPathNodeSet(Set<Node> xpathNodeSet, String inclusiveNamespaces, OutputStream writer)
             throws CanonicalizationException {
-        inclusive.engineCanonicalizeXPathNodeSet(xpathNodeSet, inclusiveNamespaces, writer);
+        boolean useExcl = shouldUseExclusiveForNodeSet(xpathNodeSet);
+        boolean debug = Boolean.parseBoolean(System.getProperty("hybrid.debug", "false"));
+        if (debug) {
+            System.out.println("[hybrid] CanonicalizerChilkatHybrid: method=XPathNodeSet(ns) useExclusive=" + useExcl + " nodeCount=" + (xpathNodeSet == null ? -1 : xpathNodeSet.size()) + " inclusiveNS=" + (inclusiveNamespaces == null ? "" : inclusiveNamespaces));
+        }
+        if (useExcl) {
+            exclusive.engineCanonicalizeXPathNodeSet(xpathNodeSet, inclusiveNamespaces, writer);
+        } else {
+            inclusive.engineCanonicalizeXPathNodeSet(xpathNodeSet, inclusiveNamespaces, writer);
+        }
     }
 
     @Override
@@ -68,6 +85,14 @@ public class CanonicalizerChilkatHybrid extends CanonicalizerSpi {
             return inclusive;
         }
         Element el = (Element) node;
+
+        // Documento 内层签名：Chilkat 的非标准行为要求 Documento 的 digest 实际命中 exc-c14n。
+        // Santuario 的签名生成阶段可能直接使用 Canonicalizer 对引用节点做 canonicalize，
+        // 因此这里也需要对 Documento 子树做分流。
+        if ("Documento".equals(localNameOrNodeName(el))) {
+            return exclusive;
+        }
+
         if (!"SignedInfo".equals(localNameOrNodeName(el))) {
             return inclusive;
         }
@@ -105,5 +130,35 @@ public class CanonicalizerChilkatHybrid extends CanonicalizerSpi {
         }
         int idx = nn.indexOf(':');
         return idx >= 0 ? nn.substring(idx + 1) : nn;
+    }
+
+    private static boolean shouldUseExclusiveForNodeSet(Set<Node> xpathNodeSet) {
+        if (xpathNodeSet == null || xpathNodeSet.isEmpty()) {
+            return false;
+        }
+        try {
+            for (Node n : xpathNodeSet) {
+                Element e = (n instanceof Element) ? (Element) n : null;
+                Node cur = e != null ? e : n;
+                int hop = 0;
+                while (cur != null && hop < 12) {
+                    if (cur instanceof Element) {
+                        Element ce = (Element) cur;
+                        String ln = localNameOrNodeName(ce);
+                        if ("Documento".equals(ln)) {
+                            return true;
+                        }
+                        String id = ce.getAttribute("ID");
+                        if (id != null && id.startsWith("BoletaElectronica_SET_")) {
+                            return true;
+                        }
+                    }
+                    cur = cur.getParentNode();
+                    hop++;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
     }
 }

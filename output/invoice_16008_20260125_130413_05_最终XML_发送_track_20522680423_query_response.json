@@ -1,0 +1,15 @@
+{
+  "rut_emisor" : "78065438-4",
+  "rut_envia" : "24529296-1",
+  "trackid" : "20522680423",
+  "fecha_recepcion" : "25/01/2026 13:04:14",
+  "estado" : "EPR",
+  "estadistica" : [ {
+    "tipo" : "39",
+    "informados" : 1,
+    "aceptados" : 1,
+    "rechazados" : 0,
+    "reparos" : 0
+  } ],
+  "detalle_rep_rech" : [ ]
+}

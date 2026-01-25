@@ -10,6 +10,8 @@ import org.w3c.dom.NodeList;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.security.MessageDigest;
+import java.util.Base64;
 
 /**
  * Chilkat 与 Santuario 的差异点之一：
@@ -40,6 +42,7 @@ public class TransformC14NChilkatHybrid extends TransformSpi {
             boolean secureValidation
     ) throws TransformationException {
         try {
+            boolean debug = Boolean.parseBoolean(System.getProperty("hybrid.debug", "false"));
             String referenceId = extractSameDocReferenceId(transformElement);
             Node target = resolveSameDocReferenceTarget(transformElement);
             if (target == null) {
@@ -50,9 +53,32 @@ public class TransformC14NChilkatHybrid extends TransformSpi {
             }
 
             String algo = pickAlgoByTarget(target, referenceId);
+
+            if (debug) {
+                String te = transformElement == null ? "null" : localNameOrNodeName(transformElement);
+                String tn;
+                if (target instanceof Element) {
+                    tn = localNameOrNodeName((Element) target);
+                } else {
+                    tn = target.getNodeName();
+                }
+                System.out.println("[hybrid] TransformC14NChilkatHybrid: transformElement=" + te
+                        + ", referenceId=" + referenceId
+                        + ", target=" + tn
+                        + ", algo=" + algo);
+            }
+
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             Canonicalizer.getInstance(algo).canonicalizeSubtree(target, baos);
             byte[] out = baos.toByteArray();
+
+            if (debug) {
+                try {
+                    String sha1b64 = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(out));
+                    System.out.println("[hybrid] TransformC14NChilkatHybrid: outLen=" + out.length + ", outSha1=" + sha1b64);
+                } catch (Exception ignored) {
+                }
+            }
 
             if (os != null) {
                 os.write(out);

@@ -3,6 +3,8 @@ package com.searly.taxcontrol.sii.util;
 import com.searly.taxcontrol.sii.swingtool.SiiToolProperties;
 import org.apache.xml.security.Init;
 import org.apache.xml.security.c14n.Canonicalizer;
+import org.apache.xml.security.c14n.implementations.Canonicalizer20010315ExclOmitComments;
+import org.apache.xml.security.c14n.implementations.Canonicalizer20010315OmitComments;
 import org.apache.xml.security.signature.XMLSignature;
 import org.apache.xml.security.signature.Reference;
 import org.apache.xml.security.signature.XMLSignatureInput;
@@ -216,6 +218,26 @@ public class SantuarioChilkatSignatureLab {
                     }
                     markIdAttribute(refEl);
 
+                    boolean debugRefDigest = Boolean.parseBoolean(System.getProperty("lab.debugRefDigest", "false"));
+                    if (debugRefDigest && i == 0) {
+                        try {
+                            ByteArrayOutputStream baosEx = new ByteArrayOutputStream();
+                            new Canonicalizer20010315ExclOmitComments().engineCanonicalizeSubTree(refEl, baosEx);
+                            String exB64 = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(baosEx.toByteArray()));
+
+                            ByteArrayOutputStream baosIn = new ByteArrayOutputStream();
+                            new Canonicalizer20010315OmitComments().engineCanonicalizeSubTree(refEl, baosIn);
+                            String inB64 = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(baosIn.toByteArray()));
+
+                            System.out.println("    [lab] debugRefDigest owner=" + expect.owner + " refId=" + refId);
+                            System.out.println("    [lab] debugRefDigest expectedDigest=" + expect.digestValue);
+                            System.out.println("    [lab] debugRefDigest exc-c14nDigest=" + exB64);
+                            System.out.println("    [lab] debugRefDigest inc-c14nDigest=" + inB64);
+                        } catch (Exception e) {
+                            System.out.println("    [lab] debugRefDigest error: " + e.getMessage());
+                        }
+                    }
+
                     ElementProxy.setDefaultPrefix(XMLDSIG_NS, v.sigPrefix);
 
                     XMLSignature sig = new XMLSignature(
@@ -275,7 +297,48 @@ public class SantuarioChilkatSignatureLab {
                         } catch (Exception ignored) {
                         }
                     }
+
+                    boolean traceHybrid = Boolean.parseBoolean(System.getProperty("lab.traceHybrid", "false"));
+                    if (traceHybrid) {
+                        System.out.println("    [lab] traceHybrid beforeSign variant=" + v.name + " owner=" + expect.owner + " refId=" + refId);
+                    }
                     sig.sign(pk);
+                    if (traceHybrid) {
+                        System.out.println("    [lab] traceHybrid afterSign variant=" + v.name + " owner=" + expect.owner + " refId=" + refId);
+                    }
+
+                    boolean debugAfterSign = Boolean.parseBoolean(System.getProperty("lab.debugAfterSign", "false"));
+                    if (debugAfterSign && i == 0) {
+                        try {
+                            if (sig.getSignedInfo() != null && sig.getSignedInfo().getLength() > 0) {
+                                Reference rr = sig.getSignedInfo().item(0);
+                                byte[] stored = rr.getDigestValue();
+                                String storedB64 = stored == null ? "" : Base64.getEncoder().encodeToString(stored);
+
+                                XMLSignatureInput xinBefore = rr.getContentsBeforeTransformation();
+                                byte[] bb = xinBefore == null ? null : xinBefore.getBytes();
+                                String beforeB64 = "";
+                                int beforeLen = bb == null ? -1 : bb.length;
+                                if (bb != null) {
+                                    beforeB64 = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(bb));
+                                }
+
+                                XMLSignatureInput xin = rr.getContentsAfterTransformation();
+                                byte[] b = xin == null ? null : xin.getBytes();
+                                String recomputedB64 = "";
+                                int bytesLen = b == null ? -1 : b.length;
+                                if (b != null) {
+                                    recomputedB64 = Base64.getEncoder().encodeToString(MessageDigest.getInstance("SHA-1").digest(b));
+                                }
+
+                                System.out.println("    [lab] debugAfterSign storedDigest=" + storedB64);
+                                System.out.println("    [lab] debugAfterSign beforeDigest=" + beforeB64 + " bytesLen=" + beforeLen);
+                                System.out.println("    [lab] debugAfterSign recomputedDigest=" + recomputedB64 + " bytesLen=" + bytesLen);
+                            }
+                        } catch (Exception e) {
+                            System.out.println("    [lab] debugAfterSign error: " + e.getMessage());
+                        }
+                    }
 
                     SigSnapshot actual = snapshotSignatureSingle(doc, sig.getElement(), expect.owner);
 
