@@ -33,7 +33,9 @@ import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.KeyStore;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -110,12 +112,15 @@ public class CertificacionSetBasicoFrame extends JFrame {
         options.add(genAndSend);
 
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        JButton generateFiveCases = new JButton("Generar 5 Casos + RCOF");
+        generateFiveCases.addActionListener(e -> onGenerateFiveCases(folioInicial, deleteIndividual, genOnly.isSelected(), genAndSend.isSelected()));
         JButton generate = new JButton("Generar Documentos");
         generate.addActionListener(e -> onGenerate(tabs, folioInicial, deleteIndividual, genOnly.isSelected(), genAndSend.isSelected()));
 
         JButton close = new JButton("Cerrar");
         close.addActionListener(e -> dispose());
 
+        bottom.add(generateFiveCases);
         bottom.add(generate);
         bottom.add(close);
 
@@ -276,6 +281,114 @@ public class CertificacionSetBasicoFrame extends JFrame {
         });
     }
 
+    private void onGenerateFiveCases(JTextField folioInicial, JCheckBox deleteIndividual, boolean genOnly, boolean genAndSend) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                logArea.setText("");
+
+                if (config == null) {
+                    throw new IllegalStateException("config is null");
+                }
+                if (config.certificatePath == null || config.certificatePath.trim().isEmpty()) {
+                    throw new IllegalArgumentException("请先在窗口1选择证书路径并保存");
+                }
+                if (config.certificatePassword == null || config.certificatePassword.trim().isEmpty()) {
+                    throw new IllegalArgumentException("请先在窗口1填写证书密码并保存");
+                }
+
+                if (genAndSend) {
+                    throw new IllegalArgumentException("批量 5-case 当前仅支持生成（Solo Generar）。如需发送请先在 SII 门户手工 Upload 单个 EnvioBOLETA。 ");
+                }
+
+                validateCertificateRutMatches();
+
+                String cafPath = cafPathField.getText();
+                if (cafPath == null || cafPath.trim().isEmpty()) {
+                    throw new IllegalArgumentException("请选择 CAF 文件");
+                }
+                byte[] cafBytes = Files.readAllBytes(Path.of(cafPath.trim()));
+                if (cafBytes.length == 0) {
+                    throw new IllegalArgumentException("CAF 文件为空");
+                }
+
+                String outDirStr = safe(outputDirField.getText()).trim();
+                if (outDirStr.isEmpty()) {
+                    outDirStr = "temp";
+                }
+                config.outputDir = outDirStr;
+                Path outDir = Path.of(outDirStr);
+                if (!Files.exists(outDir)) {
+                    Files.createDirectories(outDir);
+                }
+
+                String folioStr = safe(folioInicial.getText()).trim();
+                if (folioStr.isEmpty()) {
+                    folioStr = "1";
+                }
+
+                final int startFolio;
+                try {
+                    startFolio = Integer.parseInt(folioStr);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Folio Inicial 必须是数字");
+                }
+
+                List<SetBasicoCaseFactory.CaseSpec> cases = SetBasicoCaseFactory.getCases();
+                if (cases == null || cases.isEmpty()) {
+                    throw new IllegalStateException("未找到 SetBasico 的案例列表");
+                }
+
+                List<InvoiceData> invoiceDataList = new ArrayList<>();
+                int current = startFolio;
+                for (SetBasicoCaseFactory.CaseSpec spec : cases) {
+                    InvoiceData invoiceData = SetBasicoCaseFactory.buildInvoice(config, String.valueOf(current), spec.caseName, spec.lines);
+                    invoiceDataList.add(invoiceData);
+                    current++;
+                }
+
+                Set<Path> before = listOutputFiles();
+
+                KeyStore ks = CertificateManager.loadPKCS12Certificate(config.certificatePath, config.certificatePassword);
+                InvoiceGenerator generator = new InvoiceGenerator();
+                generator.generateInvoiceXML(
+                        invoiceDataList,
+                        ks,
+                        config.certificatePassword,
+                        new ByteArrayInputStream(cafBytes),
+                        config.aliasDocumento,
+                        config.aliasSetDte
+                );
+
+                Path batchSaved = InvoiceGenerator.getLastSavedXmlPath();
+                if (batchSaved != null) {
+                    log("EnvioBOLETA(5 casos) generado: " + batchSaved.toAbsolutePath());
+                    try {
+                        if (batchSaved.getParent() != null && !batchSaved.getParent().toAbsolutePath().normalize().equals(outDir.toAbsolutePath().normalize())) {
+                            Path copy = outDir.resolve(batchSaved.getFileName().toString());
+                            Files.copy(batchSaved, copy, StandardCopyOption.REPLACE_EXISTING);
+                            log("Copia EnvioBOLETA a carpeta de salida: " + copy.toAbsolutePath());
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                Path rvdFile = generateRvdForInvoices(invoiceDataList);
+                log("RVD/RCOF generado (manual upload): " + (rvdFile == null ? "" : rvdFile.toAbsolutePath()));
+
+                Set<Path> after = listOutputFiles();
+                if (deleteIndividual != null && deleteIndividual.isSelected()) {
+                    int deleted = deleteOutputDiff(before, after);
+                    log("Eliminar XML Individuales: deleted=" + deleted);
+                }
+
+                JOptionPane.showMessageDialog(this, "OK", "OK", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                log("Error: " + ex.getMessage());
+            }
+        });
+    }
+
     private void validateCertificateRutMatches() {
         try {
             KeyStore ks = CertificateManager.loadPKCS12Certificate(config.certificatePath, config.certificatePassword);
@@ -400,6 +513,74 @@ public class CertificacionSetBasicoFrame extends JFrame {
         } catch (Exception ignored) {
         }
         return out;
+    }
+
+    private Path generateRvdForInvoices(List<InvoiceData> invoiceDataList) throws Exception {
+        if (invoiceDataList == null || invoiceDataList.isEmpty()) {
+            return null;
+        }
+
+        KeyStore keyStore = CertificateManager.loadPKCS12Certificate(config.certificatePath, config.certificatePassword);
+
+        int secEnvio = 1;
+        try {
+            secEnvio = Integer.parseInt(safe(config.rvdSecEnvio).trim());
+            if (secEnvio <= 0) {
+                secEnvio = 1;
+            }
+        } catch (Exception ignored) {
+            secEnvio = 1;
+        }
+
+        String rvdXml = ConsumoFoliosGenerator.generateAndSign(config, invoiceDataList, secEnvio, keyStore, config.certificatePassword);
+
+        String outDirStr = safe(config.outputDir).trim();
+        if (outDirStr.isEmpty()) {
+            outDirStr = "temp";
+        }
+        Path outDir = Path.of(outDirStr);
+        if (!Files.exists(outDir)) {
+            Files.createDirectories(outDir);
+        }
+
+        String date = invoiceDataList.get(0).getFchEmis();
+        int[] range = minMaxFolio(invoiceDataList);
+        Path out = outDir.resolve("RVD_RCOF_" + date + "_SEC" + secEnvio + "_FROM_" + range[0] + "_" + range[1] + ".xml");
+        Files.writeString(out, rvdXml, StandardCharsets.ISO_8859_1);
+        log("RVD/RCOF generado: " + out.toAbsolutePath());
+
+        config.rvdSecEnvio = String.valueOf(secEnvio + 1);
+        try {
+            Path cfgPath = Path.of("sii-tool.properties");
+            config.save(cfgPath);
+        } catch (Exception ignored) {
+        }
+
+        return out;
+    }
+
+    private static int[] minMaxFolio(List<InvoiceData> invoiceDataList) {
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (InvoiceData inv : invoiceDataList) {
+            if (inv == null || inv.getFolio() == null) {
+                continue;
+            }
+            try {
+                int v = Integer.parseInt(inv.getFolio().trim());
+                if (v < min) {
+                    min = v;
+                }
+                if (v > max) {
+                    max = v;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        if (min == Integer.MAX_VALUE || max == Integer.MIN_VALUE) {
+            return new int[]{0, 0};
+        }
+        return new int[]{min, max};
     }
 
     private String generateOnly(InvoiceData invoiceData, byte[] cafBytes) throws Exception {

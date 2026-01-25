@@ -30,3 +30,18 @@ java -cp $classpath com.searly.taxcontrol.sii.util.FiveCasesGenerateOnly
 
 - 该入口是 **仅生成**，不会调用网络接口发送。
 - 如需发送，可在 SII 门户手工上传该单个 XML，或后续再新增“批量发送”入口。
+
+## Swing 工具入口（可视化）
+
+在 Swing 工具 `Empresa Emisora` 窗口中点击：`Certificación Set Básico`。
+
+界面右下角新增按钮：`Generar 5 Casos + RCOF`，该按钮会：
+
+- 使用界面中的 `CAF` 文件与 `Folio Inicial`
+- 生成 5 张 DTE（CASO-1..CASO-5），Folio 从 `Folio Inicial` 开始连续递增
+- 输出 1 个 EnvioBOLETA（包含 5 张 DTE）到 `output/`（并尝试拷贝到你选的 `Salida` 目录）
+- 生成 1 个匹配的 RCOF 到你选的 `Salida` 目录
+  - 文件名：`RVD_RCOF_<FchEmis>_SEC<SecEnvio>_FROM_<minFolio>_<maxFolio>.xml`
+  - `SecEnvio` 使用 `sii-tool.properties` 中的 `rvd.secEnvio`，生成成功后会自动 `+1` 并保存回配置
+
+提示：批量 5-case 当前仅支持 `Solo Generar`，发送请手工 Upload 生成的 EnvioBOLETA 与 RCOF。
