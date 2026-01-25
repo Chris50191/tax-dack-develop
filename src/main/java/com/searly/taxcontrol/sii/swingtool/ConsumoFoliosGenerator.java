@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class ConsumoFoliosGenerator {
 
     private static final String NS = "http://www.sii.cl/SiiDte";
+    private static final String XSI_NS = "http://www.w3.org/2001/XMLSchema-instance";
 
     public static String generateAndSign(SiiToolProperties cfg, InvoiceData invoiceData, int secEnvio, KeyStore keyStore, String pfxPassword) throws Exception {
         if (invoiceData == null) {
@@ -106,7 +107,8 @@ public class ConsumoFoliosGenerator {
 
         Element root = doc.createElementNS(NS, "ConsumoFolios");
         root.setAttribute("version", "1.0");
-        root.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:ds", Constants.SignatureSpecNS);
+        root.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xsi", XSI_NS);
+        root.setAttributeNS(XSI_NS, "xsi:schemaLocation", "http://www.sii.cl/SiiDte ConsumoFolio_v10.xsd");
         doc.appendChild(root);
 
         String rutEmisor = cfg.rutEmisor;
@@ -242,14 +244,71 @@ public class ConsumoFoliosGenerator {
         TransformerFactory tf = TransformerFactory.newInstance();
         Transformer transformer = tf.newTransformer();
         transformer.setOutputProperty(OutputKeys.ENCODING, "ISO-8859-1");
-        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
         transformer.setOutputProperty(OutputKeys.INDENT, "no");
 
         StringWriter sw = new StringWriter();
         transformer.transform(new DOMSource(doc), new StreamResult(sw));
-        String xml = sw.toString();
-        xml = xml.replace("\r\n", "\n").replace("\r", "");
+        String xmlBody = sw.toString();
+        xmlBody = xmlBody.replace("\r\n", "\n").replace("\r", "");
+        xmlBody = xmlBody.trim();
+        xmlBody = normalizeConsumoFoliosRoot(xmlBody);
+
+        String xml = "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n" + xmlBody;
         return xml;
+    }
+
+    private static String normalizeConsumoFoliosRoot(String xml) {
+        if (xml == null || xml.isEmpty()) {
+            return xml;
+        }
+
+        int start = xml.indexOf("<ConsumoFolios");
+        if (start < 0) {
+            return xml;
+        }
+        int end = xml.indexOf(">", start);
+        if (end < 0) {
+            return xml;
+        }
+
+        String tag = xml.substring(start, end + 1);
+        String xmlns = extractAttr(tag, "xmlns=\"", "\"");
+        String xmlnsXsi = extractAttr(tag, "xmlns:xsi=\"", "\"");
+        String schemaLoc = extractAttr(tag, "xsi:schemaLocation=\"", "\"");
+        String version = extractAttr(tag, "version=\"", "\"");
+
+        StringBuilder rebuilt = new StringBuilder();
+        rebuilt.append("<ConsumoFolios");
+        rebuilt.append(" xmlns=\"").append(xmlns == null ? NS : xmlns).append("\"");
+        if (xmlnsXsi != null) {
+            rebuilt.append(" xmlns:xsi=\"").append(xmlnsXsi).append("\"");
+        }
+        if (schemaLoc != null) {
+            rebuilt.append(" xsi:schemaLocation=\"").append(schemaLoc).append("\"");
+        }
+        if (version != null) {
+            rebuilt.append(" version=\"").append(version).append("\"");
+        }
+        rebuilt.append(">");
+
+        return xml.substring(0, start) + rebuilt + xml.substring(end + 1);
+    }
+
+    private static String extractAttr(String tag, String prefix, String endToken) {
+        if (tag == null || prefix == null || endToken == null) {
+            return null;
+        }
+        int i = tag.indexOf(prefix);
+        if (i < 0) {
+            return null;
+        }
+        int start = i + prefix.length();
+        int end = tag.indexOf(endToken, start);
+        if (end < 0) {
+            return null;
+        }
+        return tag.substring(start, end);
     }
 
     private static void appendText(Document doc, Element parent, String tag, String value) {

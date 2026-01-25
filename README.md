@@ -19,3 +19,10 @@ java -cp "target/classes;@cp.txt" com.searly.taxcontrol.sii.util.SingleCaseSendA
 # 生成 1 个 EnvioBOLETA，其中包含 5 张 DTE（CASO-1..CASO-5），并输出到 output/
 java -cp "target/classes;@cp.txt" com.searly.taxcontrol.sii.util.FiveCasesGenerateOnly
 ```
+
+# 从已通过的 EnvioBOLETA 反推生成 RCOF（补传 COF）
+```shell
+# 从已存在的 EnvioBOLETA XML 解析 Totales/Folio 并生成 RCOF（不重生成 DTE）
+# 参数: <envioBoletaXmlPath> [secEnvio]
+@REM Windows PowerShell 推荐写法（确保依赖 jar 在 classpath 中）
+powershell -NoProfile -Command "$cp=(Get-Content -Raw cp.txt).Trim(); $classpath='target\\classes;' + $cp; java -cp $classpath com.searly.taxcontrol.sii.util.GenerateRcofFromEnvioBoleta 'output\\batch_1054_1058_20260125_021232_05_最终XML_发送.xml' 1"

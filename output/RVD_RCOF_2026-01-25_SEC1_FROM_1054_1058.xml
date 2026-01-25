@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?><ConsumoFolios xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0" xsi:schemaLocation="http://www.sii.cl/SiiDte ConsumoFolio_v10.xsd" xmlns="http://www.sii.cl/SiiDte"><DocumentoConsumoFolios ID="CF_780654384_20260125_1"><Caratula version="1.0"><RutEmisor>78065438-4</RutEmisor><RutEnvia>24529296-1</RutEnvia><FchResol>2026-01-25</FchResol><NroResol>0</NroResol><FchInicio>2026-01-25</FchInicio><FchFinal>2026-01-25</FchFinal><SecEnvio>1</SecEnvio><TmstFirmaEnv>2026-01-25T02:21:25</TmstFirmaEnv></Caratula><Resumen><TipoDocumento>39</TipoDocumento><MntNeto>43833</MntNeto><MntIva>8327</MntIva><TasaIVA>19</TasaIVA><MntExento>2000</MntExento><MntTotal>54160</MntTotal><FoliosEmitidos>5</FoliosEmitidos><FoliosAnulados>0</FoliosAnulados><FoliosUtilizados>5</FoliosUtilizados><RangoUtilizados><Inicial>1059</Inicial><Final>1063</Final></RangoUtilizados></Resumen></DocumentoConsumoFolios><Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?><ConsumoFolios xmlns="http://www.sii.cl/SiiDte" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sii.cl/SiiDte ConsumoFolio_v10.xsd" version="1.0"><DocumentoConsumoFolios ID="CF_780654384_20260125_1"><Caratula version="1.0"><RutEmisor>78065438-4</RutEmisor><RutEnvia>24529296-1</RutEnvia><FchResol>2026-01-25</FchResol><NroResol>0</NroResol><FchInicio>2026-01-25</FchInicio><FchFinal>2026-01-25</FchFinal><SecEnvio>1</SecEnvio><TmstFirmaEnv>2026-01-25T02:52:38</TmstFirmaEnv></Caratula><Resumen><TipoDocumento>39</TipoDocumento><MntNeto>43833</MntNeto><MntIva>8327</MntIva><TasaIVA>19</TasaIVA><MntExento>2000</MntExento><MntTotal>54160</MntTotal><FoliosEmitidos>5</FoliosEmitidos><FoliosAnulados>0</FoliosAnulados><FoliosUtilizados>5</FoliosUtilizados><RangoUtilizados><Inicial>1054</Inicial><Final>1058</Final></RangoUtilizados></Resumen></DocumentoConsumoFolios><Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
 <SignedInfo>
 <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
 <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
@@ -7,15 +7,15 @@
 <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
 </Transforms>
 <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-<DigestValue>1JcpMOIwJLidtg+NHHOaJ4/4MmQ=</DigestValue>
+<DigestValue>LvtzGIEuMOOIxROa5UwxPlNeiOA=</DigestValue>
 </Reference>
 </SignedInfo>
 <SignatureValue>
-iVRp5m9mD5NPtV5oLwUV//MDaBv/FE+h9qJ93hhq1f5rIDcS27FoT30zWf//2tUD7Asopfqk+SGC&#13;
-GeBBgX0OaNTh1DesWrKuSMku/Z+kTUJ7eWY+q+k5KHm9beWSmCqAGUME577PFa/2rsWxnPBH3cQP&#13;
-RmbO2LHbmQMRtQte+G/9ypL2xIvfn5g5WtRti+xfZrinJfBMWuenZ8YtAHpu/QIlwgp1XKn8tvIp&#13;
-lunwEuu9CBNXEWuGmIqrrX14Q4YZEEX4p6uX0vTSPWriNfLE9SV25VwtEXJolicB78pNEB0HkpGU&#13;
-mXOAIWry1Z1lY6aNOj5Hoa4YPOT2pQ+D87KJpA==
+eVIl2ojcay23tNchBk9RYMO+mvZJCLKKiHrwuZu841WIGzO9iJtUDkovxlQSkflsVlVU3QH9SfOc&#13;
+4rnVhXVS2rjL2JfkPMjY335iqC5rhoUdui4tCO7IMeMrDDzoKrY2bXfuiu2NiCkjC8mTUdMxjMpX&#13;
+Uoq0pTnNL1nJRjmc3gma6PNhM1Zt+YW+IH+7ariK8DC/9ywjZKh1pvPLUtnofQVUtXE9B6h2LfcI&#13;
+Kms3hhtLqW0SUtGeRj1sI7dC59/CkwKYA1hf6GaWjUX+Q/kj1z+sxeuv1qRew9sQmhPzvuPA66gW&#13;
+Y8mQAjxzElx9p6oj5Jn+/2bw4ioJ1rdLzQ8AfQ==
 </SignatureValue>
 <KeyInfo>
 <KeyValue>

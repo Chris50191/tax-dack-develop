@@ -73,7 +73,18 @@ public class FiveCasesGenerateOnly {
                 cfg.aliasSetDte
         );
 
-        int secEnvio = resolveSecEnvioForDate(invoiceDataList.get(0).getFchEmis());
+        Integer forcedSecEnvio = null;
+        try {
+            String v = System.getProperty("sii.cofSecEnvio");
+            if (v != null && !v.trim().isEmpty()) {
+                forcedSecEnvio = Integer.parseInt(v.trim());
+            }
+        } catch (Exception ignored) {
+            forcedSecEnvio = null;
+        }
+        int secEnvio = (forcedSecEnvio != null && forcedSecEnvio > 0)
+                ? forcedSecEnvio
+                : resolveSecEnvioForDate(invoiceDataList.get(0).getFchEmis());
 
         String rcofXml = ConsumoFoliosGenerator.generateAndSign(cfg, invoiceDataList, secEnvio, ks, cfg.certificatePassword);
         Path outRcof = Path.of("output").resolve("RVD_RCOF_" + invoiceDataList.get(0).getFchEmis() + "_SEC" + secEnvio + ".xml");
