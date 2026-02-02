@@ -1,5 +1,6 @@
 package com.searly.taxcontrol.sii.config;
 
+import javax.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.xml.Jaxb2RootElementHttpMessageConverter;
@@ -36,10 +37,16 @@ public class SiiConfig {
         this.properties = new Properties();
     }
 
+    @PostConstruct
+    public void init() {
+        loadConfig();
+    }
+
     /**
      * 构造函数
      *
      * @param apiUrl API URL
+     * @param boletaBaseUrl API URL
      * @param validateUrl 验证URL
      * @param certificatePath 证书路径
      * @param certificatePassword 证书密码

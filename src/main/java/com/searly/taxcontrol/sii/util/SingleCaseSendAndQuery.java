@@ -8,7 +8,7 @@ import com.searly.taxcontrol.sii.model.response.SiiEnvioStatusResponse;
 import com.searly.taxcontrol.sii.service.SiiApiService;
 import com.searly.taxcontrol.sii.swingtool.SetBasicoCaseFactory;
 import com.searly.taxcontrol.sii.swingtool.SiiToolProperties;
-import com.searly.taxcontrol.verifactu.model.VeriFactuException;
+import com.searly.taxcontrol.sii.exception.SiiApiException;
 
 import java.io.ByteArrayInputStream;
 import java.security.KeyStore;
@@ -268,14 +268,14 @@ public class SingleCaseSendAndQuery {
         return request;
     }
 
-    private static ResultadoEnvioPost sendSingleInvoice(InvoiceSendRequest request) throws VeriFactuException {
+    private static ResultadoEnvioPost sendSingleInvoice(InvoiceSendRequest request) throws SiiApiException {
         SiiConfig config = new SiiConfig();
         config.loadConfig();
         SiiApiService service = new SiiApiService(config);
         return service.registerInvoice(request);
     }
 
-    private static void queryWithRetry(String rutEmisor, String trackId, Path lastSavedXml) throws VeriFactuException, InterruptedException {
+    private static void queryWithRetry(String rutEmisor, String trackId, Path lastSavedXml) throws SiiApiException, InterruptedException {
         if (rutEmisor == null || trackId == null) {
             return;
         }

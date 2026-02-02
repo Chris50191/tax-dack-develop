@@ -2,6 +2,7 @@ package com.searly.taxcontrol.sii.service;
 
 import com.searly.taxcontrol.sii.api.SiiApi;
 import com.searly.taxcontrol.sii.config.SiiConfig;
+import com.searly.taxcontrol.sii.exception.SiiApiException;
 import com.searly.taxcontrol.sii.model.request.EnvioPost;
 import com.searly.taxcontrol.sii.model.request.InvoiceSendRequest;
 import com.searly.taxcontrol.sii.model.response.GetTokenResponse;
@@ -15,16 +16,7 @@ import com.searly.taxcontrol.sii.model.response.SiiInvoiceResponse;
 import com.searly.taxcontrol.sii.util.AuthUtils;
 import com.searly.taxcontrol.sii.util.CertificateManager;
 import com.searly.taxcontrol.sii.util.InvoiceGenerator;
-import com.searly.taxcontrol.verifactu.config.VeriFactuConfig;
-import com.searly.taxcontrol.verifactu.model.InvoiceResponse;
-import com.searly.taxcontrol.verifactu.model.VeriFactuException;
-import com.searly.taxcontrol.verifactu.utils.SSLUtils;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -32,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.converter.xml.Jaxb2RootElementHttpMessageConverter;
@@ -42,18 +35,14 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
 import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -63,34 +52,37 @@ import java.util.logging.Logger;
  * VeriFactu服务实现
  * 实现与AEAT税务系统的交互
  */
+@Service
 public class SiiApiService implements SiiApi {
 
-  private static final Logger log = Logger.getLogger(SiiApiService.class.getName());
+    private static final Logger log = Logger.getLogger(SiiApiService.class.getName());
 
-  private final String apiBaseUrl;
-  private final String boletaBaseUrl;
-  private final String validateUrl;
-  private final boolean isTestEnvironment;
-  private final String certificatePath;
-  private final InputStream certificate;
-  private final String certificatePassword;
-  private final RestTemplate restTemplate;
+    private final String apiBaseUrl;
+    private final String boletaBaseUrl;
+    private final String validateUrl;
+    private final boolean isTestEnvironment;
+    private final String certificatePath;
+    private final InputStream certificate;
+    private final String certificatePassword;
+    private final RestTemplate restTemplate;
 
-  /**
-   * 构造函数
-   *
-   * @param config VeriFactu配置
-   */
-  public SiiApiService(SiiConfig config) throws VeriFactuException {
-    this.apiBaseUrl = config.getApiUrl();
-    this.boletaBaseUrl = config.getBoletaBaseUrl();
-    this.validateUrl = config.getValidateUrl();
-    this.isTestEnvironment = config.getIsTestEnvironment();
-    this.certificatePath = config.getCertificatePath();
-    this.certificate = config.getCertificate();
-    this.certificatePassword = config.getCertificatePassword();
-    this.restTemplate = new RestTemplate();
-    this.restTemplate.setMessageConverters(Collections.singletonList(new Jaxb2RootElementHttpMessageConverter()));
+    /**
+     * 构造函数
+     *
+     * @param config VeriFactu配置
+     */
+    public SiiApiService(SiiConfig config) {
+        this.apiBaseUrl = config.getApiUrl();
+        this.boletaBaseUrl = config.getBoletaBaseUrl();
+        this.validateUrl = config.getValidateUrl();
+        this.isTestEnvironment = config.getIsTestEnvironment();
+        this.certificatePath = config.getCertificatePath();
+        this.certificate = config.getCertificate();
+        this.certificatePassword = config.getCertificatePassword();
+        this.restTemplate = new RestTemplate();
+        List<HttpMessageConverter<?>> converters = new ArrayList<>();
+        converters.add(new Jaxb2RootElementHttpMessageConverter());
+        this.restTemplate.setMessageConverters(converters);
 
     log.info("VeriFactuService初始化完成");
     log.info("环境: " + (isTestEnvironment ? "测试环境" : "生产环境"));
@@ -100,9 +92,9 @@ public class SiiApiService implements SiiApi {
 
   }
 
-  public String getOrCreateToken(String rutDigits) throws VeriFactuException {
+  public String getOrCreateToken(String rutDigits) {
     if (rutDigits == null || rutDigits.trim().isEmpty()) {
-      throw new VeriFactuException("rutDigits is null");
+      throw new SiiApiException("rutDigits is null");
     }
     String rut = rutDigits.trim();
 
@@ -123,11 +115,11 @@ public class SiiApiService implements SiiApi {
         }
         String signedXml = AuthUtils.signToken(semilla, keyStore, certificatePassword);
         if (StringUtils.isEmpty(signedXml)) {
-          throw new VeriFactuException("signedXml is null");
+          throw new SiiApiException("signedXml is null");
         }
         String token = AuthUtils.getToken(apiBaseUrl, rut, restTemplate, signedXml);
         if (token == null || token.trim().isEmpty()) {
-          throw new VeriFactuException("token is null");
+          throw new SiiApiException("token is null");
         }
         return token;
       } catch (RuntimeException e) {
@@ -137,7 +129,7 @@ public class SiiApiService implements SiiApi {
             Thread.sleep(500L * (1L << (attempt - 1)));
           } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            throw new VeriFactuException("token retry interrupted", ie);
+            throw new SiiApiException("token retry interrupted", ie);
           }
         }
       } catch (Exception e) {
@@ -147,13 +139,13 @@ public class SiiApiService implements SiiApi {
             Thread.sleep(500L * (1L << (attempt - 1)));
           } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
-            throw new VeriFactuException("token retry interrupted", ie);
+            throw new SiiApiException("token retry interrupted", ie);
           }
         }
       }
     }
 
-    throw new VeriFactuException("token is null", last);
+    throw new SiiApiException("token is null", last);
   }
 
   public String sendRvd(String token, EnvioPost envioPost, byte[] xmlContent, String endpointPath) {
@@ -212,7 +204,7 @@ public class SiiApiService implements SiiApi {
   }
 
   @Override
-  public ResultadoEnvioPost registerInvoice(InvoiceSendRequest request) throws VeriFactuException {
+  public ResultadoEnvioPost registerInvoice(InvoiceSendRequest request) {
     try {
       // 手动验证请求参数
       request.validate();
@@ -221,13 +213,13 @@ public class SiiApiService implements SiiApi {
       // SII 要求：获取 Token 时使用的 RUT 必须与发票中的 rutEmisor 一致
       String invoiceRutEmisor = request.getInvoiceData().getRutEmisor();
       if (invoiceRutEmisor == null || invoiceRutEmisor.trim().isEmpty()) {
-        throw new VeriFactuException("发票数据中的 rutEmisor 不能为空");
+        throw new SiiApiException("发票数据中的 rutEmisor 不能为空");
       }
       
       // 提取 RUT 数字部分（去掉验证位）
       String[] rutParts = invoiceRutEmisor.split("-");
       if (rutParts.length != 2) {
-        throw new VeriFactuException("发票数据中的 rutEmisor 格式不正确，应为 XXXXX-XX 格式: " + invoiceRutEmisor);
+        throw new SiiApiException("发票数据中的 rutEmisor 格式不正确，应为 XXXXX-XX 格式: " + invoiceRutEmisor);
       }
       String rutForAuth = rutParts[0]; // 用于认证的 RUT（不含验证位）
       
@@ -247,12 +239,12 @@ public class SiiApiService implements SiiApi {
       String signedXml = AuthUtils.signToken(semilla, keyStore, certificatePassword);
       // 验证令牌
       if (StringUtils.isEmpty(signedXml)) {
-        throw new VeriFactuException("signedXml is null");
+        throw new SiiApiException("signedXml is null");
       }
       String token = AuthUtils.getToken(apiBaseUrl, rutForAuth, restTemplate, signedXml);
       // 验证令牌
       if (token == null || token.trim().isEmpty()) {
-        throw new VeriFactuException("token is null");
+        throw new SiiApiException("token is null");
       }
       log.log(Level.INFO, "成功获取SII令牌: " + token);
 
@@ -272,7 +264,7 @@ public class SiiApiService implements SiiApi {
           String cafRut = cafData.re;
           
           if (!invoiceRutEmisor.equals(cafRut)) {
-            throw new VeriFactuException(
+            throw new SiiApiException(
                 String.format("CAF文件中的RUT (%s) 与发票中的rutEmisor (%s) 不一致！必须完全匹配。", 
                     cafRut, invoiceRutEmisor));
           }
@@ -284,7 +276,7 @@ public class SiiApiService implements SiiApi {
             request.getCafFile().reset();
           } else {
             // 如果流不支持mark/reset，抛出异常提示使用ByteArrayInputStream
-            throw new VeriFactuException(
+            throw new SiiApiException(
                 "CAF流不支持mark/reset，请使用ByteArrayInputStream或确保流支持reset操作");
           }
         } catch (Exception e) {
@@ -295,7 +287,7 @@ public class SiiApiService implements SiiApi {
               log.log(Level.WARNING, "重置CAF流失败", resetEx);
             }
           }
-          throw new VeriFactuException("验证CAF文件失败: " + e.getMessage(), e);
+          throw new SiiApiException("验证CAF文件失败: " + e.getMessage(), e);
         }
       }
 
@@ -305,7 +297,7 @@ public class SiiApiService implements SiiApi {
                          ", rutEnvia: " + invoiceRutEnviaBeforeGen);
       
       if (invoiceRutEnviaBeforeGen == null || invoiceRutEnviaBeforeGen.trim().isEmpty()) {
-        throw new VeriFactuException("发票数据中的 rutEnvia 为空，无法生成发票");
+        throw new SiiApiException("发票数据中的 rutEnvia 为空，无法生成发票");
       }
       
       // 创建发票生成器
@@ -346,12 +338,12 @@ public class SiiApiService implements SiiApi {
       // 重要：rutCompany 必须与发票 XML 中的 RutEmisor 一致
       String invoiceRutEmisorForCompany = request.getInvoiceData().getRutEmisor();
       if (invoiceRutEmisorForCompany == null || invoiceRutEmisorForCompany.trim().isEmpty()) {
-        throw new VeriFactuException("发票数据中的 rutEmisor 不能为空");
+        throw new SiiApiException("发票数据中的 rutEmisor 不能为空");
       }
 
       String[] rutCompanyParts = invoiceRutEmisorForCompany.split("-");
       if (rutCompanyParts.length != 2) {
-        throw new VeriFactuException("发票数据中的 rutEmisor 格式不正确，应为 XXXXX-XX 格式: " + invoiceRutEmisorForCompany);
+        throw new SiiApiException("发票数据中的 rutEmisor 格式不正确，应为 XXXXX-XX 格式: " + invoiceRutEmisorForCompany);
       }
 
       request.setRutCompany(rutCompanyParts[0]);
@@ -366,7 +358,7 @@ public class SiiApiService implements SiiApi {
       return result;
     } catch (Exception e) {
       log.log(Level.INFO, "发送发票失败", e);
-      throw new VeriFactuException("register invoice failure: " + e.getMessage(), e);
+      throw new SiiApiException("register invoice failure: " + e.getMessage(), e);
     }
   }
 
@@ -552,12 +544,12 @@ public class SiiApiService implements SiiApi {
 
           String signedXml = AuthUtils.signToken(semilla, keyStore, certificatePassword);
           if (StringUtils.isEmpty(signedXml)) {
-            throw new VeriFactuException("signedXml is null");
+            throw new SiiApiException("signedXml is null");
           }
 
           token = AuthUtils.getToken(apiBaseUrl, rut, restTemplate, signedXml);
           if (token == null || token.trim().isEmpty()) {
-            throw new VeriFactuException("token is null");
+            throw new SiiApiException("token is null");
           }
 
           log.log(Level.INFO, "成功获取SII令牌: " + token);
@@ -579,7 +571,7 @@ public class SiiApiService implements SiiApi {
         if (lastTokenError != null) {
           throw lastTokenError;
         }
-        throw new VeriFactuException("token is null");
+        throw new SiiApiException("token is null");
       }
 
       // 调用SII API查询发送状态

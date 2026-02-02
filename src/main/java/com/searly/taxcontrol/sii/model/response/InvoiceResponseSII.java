@@ -1,28 +1,17 @@
 package com.searly.taxcontrol.sii.model.response;
 
-
-import com.searly.taxcontrol.verifactu.model.InvoiceResponse;
-import com.searly.taxcontrol.verifactu.model.VerifactuConsultaResponse;
-
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * 发票操作响应
  * 包含注册、查询或作废操作的响应结果
  */
 //@Data
-public class InvoiceResponseSII extends InvoiceResponse {
+public class InvoiceResponseSII {
 
     private String request;
 
     private Long trackId;
+
+    private String status;
 
     /**
      * 响应状态
@@ -66,5 +55,13 @@ public class InvoiceResponseSII extends InvoiceResponse {
 
     public void setTrackId(Long trackId) {
         this.trackId = trackId;
+    }
+
+    public String getStatus() {
+        return this.status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

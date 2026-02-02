@@ -4,7 +4,6 @@ import com.searly.taxcontrol.sii.model.request.InvoiceSendRequest;
 import com.searly.taxcontrol.sii.model.response.ResultadoEnvioDataRespuesta;
 import com.searly.taxcontrol.sii.model.response.ResultadoEnvioPost;
 import com.searly.taxcontrol.sii.model.response.SiiEnvioStatusResponse;
-import com.searly.taxcontrol.verifactu.model.InvoiceResponse;
 
 public interface SiiApi {
   /**

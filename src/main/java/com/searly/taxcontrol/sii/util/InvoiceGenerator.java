@@ -1,13 +1,6 @@
 package com.searly.taxcontrol.sii.util;
 
 import com.searly.taxcontrol.sii.model.common.*;
-import com.chilkatsoft.CkByteData;
-import com.chilkatsoft.CkCert;
-import com.chilkatsoft.CkGlobal;
-import com.chilkatsoft.CkPrivateKey;
-import com.chilkatsoft.CkStringBuilder;
-import com.chilkatsoft.CkXmlDSig;
-import com.chilkatsoft.CkXmlDSigGen;
 import java.io.*;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -86,8 +79,6 @@ public class InvoiceGenerator {
     private static final ZoneId CHILE_DEFAULT_ZONE = ZoneId.of("America/Santiago");
 
     private static volatile Path LAST_SAVED_XML_PATH;
-
-    private static volatile boolean CHILKAT_LOADED;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
@@ -171,170 +162,70 @@ public class InvoiceGenerator {
         PrivateKey privateKeyEnvia = (PrivateKey) ks.getKey(aliasEnvia, pfxPassword.toCharArray());
         X509Certificate certEnvia = (X509Certificate) ks.getCertificate(aliasEnvia);
 
-        String signer = System.getProperty("sii.signer", "chilkat");
-        boolean allowNonChilkatSigner = Boolean.parseBoolean(System.getProperty("sii.allowNonChilkatSigner", "false"));
-        if (!allowNonChilkatSigner && (signer == null || !signer.trim().equalsIgnoreCase("chilkat"))) {
-            throw new IllegalStateException("签名器已被限制为 Chilkat。如需对照实验，请设置 -Dsii.allowNonChilkatSigner=true 且显式指定 -Dsii.signer=...。");
+        java.security.cert.Certificate[] chainArrEmisor = null;
+        try {
+            chainArrEmisor = ks.getCertificateChain(aliasEmisor);
+        } catch (Exception ignored) {
+            chainArrEmisor = null;
+        }
+        List<X509Certificate> certChainEmisor = new ArrayList<>();
+        if (chainArrEmisor != null) {
+            for (java.security.cert.Certificate c : chainArrEmisor) {
+                if (c instanceof X509Certificate) {
+                    certChainEmisor.add((X509Certificate) c);
+                }
+            }
+        }
+        if (certChainEmisor.isEmpty() && certEmisor != null) {
+            certChainEmisor.add(certEmisor);
         }
 
+        java.security.cert.Certificate[] chainArrEnvia = null;
+        try {
+            chainArrEnvia = ks.getCertificateChain(aliasEnvia);
+        } catch (Exception ignored) {
+            chainArrEnvia = null;
+        }
+        List<X509Certificate> certChainEnvia = new ArrayList<>();
+        if (chainArrEnvia != null) {
+            for (java.security.cert.Certificate c : chainArrEnvia) {
+                if (c instanceof X509Certificate) {
+                    certChainEnvia.add((X509Certificate) c);
+                }
+            }
+        }
+        if (certChainEnvia.isEmpty() && certEnvia != null) {
+            certChainEnvia.add(certEnvia);
+        }
+
+        String signer = System.getProperty("sii.signer", "santuario-chilkat-compat");
         boolean santuarioCompat = signer != null && signer.trim().equalsIgnoreCase("santuario-chilkat-compat");
 
-        if (signer != null && signer.trim().equalsIgnoreCase("chilkat")) {
-            Element setEl = (Element) doc.getElementsByTagName("SetDTE").item(0);
-            if (setEl == null) {
-                throw new IllegalStateException("Chilkat 签名：未找到 SetDTE 元素");
-            }
-
-            NodeList docNodes = doc.getElementsByTagName("Documento");
-            if (docNodes == null || docNodes.getLength() == 0) {
-                throw new IllegalStateException("Chilkat 签名：未找到 Documento 元素");
-            }
-
-            NodeList dteNodes = doc.getElementsByTagName("DTE");
-            if (dteNodes == null || dteNodes.getLength() == 0) {
-                throw new IllegalStateException("Chilkat 签名：未找到 DTE 元素");
-            }
-            if (dteNodes.getLength() != docNodes.getLength()) {
-                throw new IllegalStateException("Chilkat 签名：DTE/Documento 数量不一致，无法批量签名");
-            }
-
-            String siiNs = "http://www.sii.cl/SiiDte";
-            try {
-                for (int i = 0; i < dteNodes.getLength(); i++) {
-                    Node dn = dteNodes.item(i);
-                    if (!(dn instanceof Element)) continue;
-                    Element dteEl = (Element) dn;
-                    if (!dteEl.hasAttribute("xmlns") && (dteEl.getNamespaceURI() == null || siiNs.equals(dteEl.getNamespaceURI()))) {
-                        dteEl.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
-                    }
-                }
-                for (int i = 0; i < docNodes.getLength(); i++) {
-                    Node n = docNodes.item(i);
-                    if (!(n instanceof Element)) continue;
-                    Element docEl = (Element) n;
-                    if (!docEl.hasAttribute("xmlns") && (docEl.getNamespaceURI() == null || siiNs.equals(docEl.getNamespaceURI()))) {
-                        docEl.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
-                    }
-                }
-                if (!setEl.hasAttribute("xmlns") && (setEl.getNamespaceURI() == null || siiNs.equals(setEl.getNamespaceURI()))) {
-                    setEl.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
-                }
-            } catch (Exception ignored) {
-            }
-
-            String setId = setEl.getAttribute("ID");
-            if (setId == null || setId.trim().isEmpty()) {
-                throw new IllegalStateException("Chilkat 签名：SetDTE 缺少 ID 属性");
-            }
-
-            // 关键：不要在同一个 XML 上连续 CreateXmlDSigSb 5 次。
-            // 逐个 Documento 在“最小 EnvioBOLETA 片段”中签名后再合并，可保证 SignedInfo 的祖先命名空间上下文稳定。
-            for (int i = 0; i < dteNodes.getLength(); i++) {
-                Element dteEl = (Element) dteNodes.item(i);
-                Element docEl = (Element) docNodes.item(i);
-
-                String docId = docEl.getAttribute("ID");
-                if (docId == null || docId.trim().isEmpty()) {
-                    throw new IllegalStateException("Chilkat 签名：Documento 缺少 ID 属性");
-                }
-
-                DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
-                f.setNamespaceAware(true);
-                Document mini = f.newDocumentBuilder().newDocument();
-
-                Element root = mini.createElementNS(siiNs, "EnvioBOLETA");
-                root.setAttribute("version", "1.0");
-                root.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
-                root.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-                root.setAttributeNS("http://www.w3.org/2001/XMLSchema-instance", "xsi:schemaLocation", "http://www.sii.cl/SiiDte EnvioBOLETA_v11.xsd");
-                mini.appendChild(root);
-
-                Element setMini = mini.createElementNS(siiNs, "SetDTE");
-                setMini.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
-                setMini.setAttribute("ID", setId);
-                root.appendChild(setMini);
-
-                Node importedDte = mini.importNode(dteEl, true);
-                setMini.appendChild(importedDte);
-
-                String miniXml = toCleanString(mini);
-                String signedMini = signXmlWithChilkat(
-                        miniXml,
-                        "EnvioBOLETA|SetDTE|DTE",
-                        0,
-                        docId,
-                        certEmisor,
-                        privateKeyEmisor,
-                        System.getProperty("chilkat.behaviors.inner", "IndentedSignature")
-                );
-
-                Document parsedMini = f.newDocumentBuilder().parse(new ByteArrayInputStream(signedMini.getBytes(StandardCharsets.ISO_8859_1)));
-                NodeList signedDtes = parsedMini.getElementsByTagName("DTE");
-                if (signedDtes == null || signedDtes.getLength() == 0) {
-                    throw new IllegalStateException("Chilkat 批量签名：未从 mini XML 中取到 DTE");
-                }
-                Node signedDte = signedDtes.item(0);
-                Node importedSignedDte = doc.importNode(signedDte, true);
-                Node parent = dteEl.getParentNode();
-                parent.replaceChild(importedSignedDte, dteEl);
-            }
-
-            // 合并完 5 个带内层签名的 DTE 后，再做一次外层 SetDTE 签名
-            String xmlWithDocSigs = toCleanString(doc);
-
-            String xmlAfterSetSig = signXmlWithChilkat(
-                    xmlWithDocSigs,
-                    "EnvioBOLETA",
-                    0,
-                    setId,
-                    certEnvia,
-                    privateKeyEnvia,
-                    System.getProperty("chilkat.behaviors.outer", "SignExistingSignatures")
-            );
-
-            String finalXml = saveXmlStringRaw(xmlAfterSetSig, filePrefix + "_05_最终XML_发送.xml");
-            validateSignaturesWithChilkat(finalXml);
-
-            boolean extraVerify = Boolean.parseBoolean(System.getProperty("sii.extraVerify", "false"));
-            if (extraVerify) {
-                validateSignaturesAfterSerialize(finalXml);
-                validateSignaturesWithSantuario(finalXml);
-            }
-            return finalXml;
+        if (santuarioCompat) {
+            SantuarioChilkatCompatInstaller.install();
         }
 
-        throw new IllegalStateException("批量生成仅支持 Chilkat 签名器");
-    }
-
-    private static void ensureChilkatLoaded() {
-        if (CHILKAT_LOADED) return;
-        synchronized (InvoiceGenerator.class) {
-            if (CHILKAT_LOADED) return;
-            try {
-                System.loadLibrary("chilkat");
-            } catch (UnsatisfiedLinkError e) {
-                String dllPathProp = System.getProperty("chilkat.dllPath", "");
-                Path dllPath;
-                if (dllPathProp != null && !dllPathProp.trim().isEmpty()) {
-                    dllPath = Path.of(dllPathProp.trim());
-                } else {
-                    dllPath = Path.of("chilkat-jdk11-x64", "chilkat.dll");
-                }
-                System.load(dllPath.toAbsolutePath().toString());
-            }
-
-            CkGlobal glob = new CkGlobal();
-            String unlock = System.getProperty("chilkat.unlock", "Start my 30-day Trial");
-            boolean okUnlock = glob.UnlockBundle(unlock);
-            if (!okUnlock) {
-                throw new IllegalStateException("Chilkat UnlockBundle 失败: " + glob.lastErrorText());
-            }
-            int status = glob.get_UnlockStatus();
-            if (status != 1) {
-                throw new IllegalStateException("Chilkat 解锁状态异常 UnlockStatus=" + status);
-            }
-            CHILKAT_LOADED = true;
+        NodeList docNodes = doc.getElementsByTagName("Documento");
+        if (docNodes == null || docNodes.getLength() == 0) {
+            throw new IllegalStateException("Santuario 签名：未找到 Documento 元素");
         }
+
+        for (int i = 0; i < docNodes.getLength(); i++) {
+            Node n = docNodes.item(i);
+            if (!(n instanceof Element)) {
+                continue;
+            }
+            signXmlForSiiSantuarioElement(doc, (Element) n, privateKeyEmisor, certChainEmisor, santuarioCompat);
+            normalizeCarriageReturnsInTextNodes(doc);
+        }
+
+        signXmlForSiiOutSantuario(doc, "SetDTE", privateKeyEnvia, certChainEnvia, santuarioCompat);
+        validateSignatures(doc);
+
+        String finalXml = saveXmlDocument(doc, filePrefix + "_05_最终XML_发送.xml");
+        validateSignaturesAfterSerialize(finalXml);
+        validateSignaturesWithSantuario(finalXml);
+        return finalXml;
     }
 
     private static void debugDigestMismatchForReference(Document doc, Element sigEl, String uri) {
@@ -484,160 +375,6 @@ public class InvoiceGenerator {
         }
     }
 
-    private static String signXmlWithChilkat(String xml, String sigLocation, int sigLocationMod, String sameDocRefId,
-                                             X509Certificate cert, PrivateKey privateKey, String behaviors) throws Exception {
-        ensureChilkatLoaded();
-
-        if (xml == null || xml.trim().isEmpty()) {
-            throw new IllegalArgumentException("Chilkat 签名：XML 为空");
-        }
-
-        // XML 1.0 解析会将 \r\n/\r 归一化为 \n；若签名计算未统一行尾，可能导致 Digest/验签不一致。
-        // 因此在交给 Chilkat 前先做换行归一化。
-        xml = xml.replace("\r\n", "\n").replace("\r", "");
-        if (sigLocation == null) sigLocation = "";
-        if (sameDocRefId == null || sameDocRefId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Chilkat 签名：sameDocRefId 为空");
-        }
-        if (cert == null || privateKey == null) {
-            throw new IllegalArgumentException("Chilkat 签名：证书或私钥为空");
-        }
-
-        CkXmlDSigGen gen = new CkXmlDSigGen();
-        gen.put_VerboseLogging(true);
-        gen.put_SigLocation(sigLocation);
-        gen.put_SigLocationMod(sigLocationMod);
-
-        gen.put_SigNamespacePrefix(System.getProperty("chilkat.sigPrefix", ""));
-        gen.put_SigNamespaceUri("http://www.w3.org/2000/09/xmldsig#");
-        String signedInfoCanonAlg = System.getProperty("chilkat.signedInfoCanon", "C14N");
-        gen.put_SignedInfoCanonAlg(signedInfoCanonAlg);
-        gen.put_SignedInfoDigestMethod("sha1");
-
-        // 门户可上传的最小结构：Reference 下仅 1 个 Transform，且通常为 C14N。
-        // 这里用 refCanonAlg 控制生成的 Transform（默认为 C14N），transformAlg 默认空（避免出现第二类 Transform）。
-        String refCanonAlg = System.getProperty("chilkat.refCanon", "C14N");
-        String transformAlg = System.getProperty("chilkat.transformAlg", "");
-        boolean okRef = gen.AddSameDocRef(sameDocRefId, "sha1", refCanonAlg, transformAlg, "");
-        if (!okRef) {
-            throw new IllegalStateException("Chilkat AddSameDocRef failed: " + gen.lastErrorText());
-        }
-
-        // 注意：SII 门户 schema 不允许 <Reference> 出现 Id 属性。
-        // Chilkat 的 SetRefIdAttr 在某些版本/场景下会导致 <Reference Id="..."> 输出，进而被门户拒绝。
-        // 因此默认关闭；如需对照实验再显式开启。
-        boolean wantSetRefIdAttr = Boolean.parseBoolean(System.getProperty("chilkat.trySetRefIdAttr", "false"));
-        if (wantSetRefIdAttr) {
-            // Chilkat 文档：SetRefIdAttr(String uri_or_id, String idAttrName)
-            // 用于指定某个 Reference 所使用的 ID 属性名（默认是 "Id"，而 SII 使用 "ID"）。
-            String idAttrName = System.getProperty("chilkat.refIdAttrName", "ID");
-            boolean setOk = false;
-            try {
-                setOk = gen.SetRefIdAttr(sameDocRefId, idAttrName);
-            } catch (Exception ignored) {
-                setOk = false;
-            }
-            if (!setOk) {
-                try {
-                    setOk = gen.SetRefIdAttr("#" + sameDocRefId, idAttrName);
-                } catch (Exception ignored) {
-                    setOk = false;
-                }
-            }
-            if (!setOk) {
-                System.out.println("Chilkat SetRefIdAttr 未成功设置(忽略继续): " + gen.lastErrorText());
-            }
-        }
-
-        CkPrivateKey ckPriv = new CkPrivateKey();
-        CkByteData pkBytes = new CkByteData();
-        pkBytes.appendByteArray(privateKey.getEncoded());
-        boolean okPk = ckPriv.LoadPkcs8(pkBytes);
-        if (!okPk) {
-            throw new IllegalStateException("Chilkat LoadPkcs8 failed: " + ckPriv.lastErrorText());
-        }
-
-        CkCert ckCert = new CkCert();
-        CkByteData certBytes = new CkByteData();
-        certBytes.appendByteArray(cert.getEncoded());
-        boolean okCert = ckCert.LoadFromBinary(certBytes);
-        if (!okCert) {
-            throw new IllegalStateException("Chilkat LoadFromBinary(cert) failed: " + ckCert.lastErrorText());
-        }
-        ckCert.SetPrivateKey(ckPriv);
-        gen.SetPrivateKey(ckPriv);
-
-        boolean okSetCert = gen.SetX509Cert(ckCert, true);
-        if (!okSetCert) {
-            throw new IllegalStateException("Chilkat SetX509Cert failed: " + gen.lastErrorText());
-        }
-
-        gen.put_KeyInfoType("Custom");
-        gen.put_CustomKeyInfoXml(buildKeyInfoXml(cert));
-        gen.put_Behaviors(behaviors == null ? "" : behaviors);
-
-        CkStringBuilder sb = new CkStringBuilder();
-        sb.Append(xml);
-        boolean okSig = gen.CreateXmlDSigSb(sb);
-        if (!okSig) {
-            throw new IllegalStateException("Chilkat CreateXmlDSigSb failed: " + gen.lastErrorText());
-        }
-
-        boolean debug = Boolean.parseBoolean(System.getProperty("chilkat.debug", "false"));
-        if (debug) {
-            System.out.println("Chilkat debug(lastErrorText):\n" + gen.lastErrorText());
-        }
-
-        return sb.getAsString();
-    }
-
-    private static void validateSignaturesWithChilkat(String xml) {
-        try {
-            ensureChilkatLoaded();
-            if (xml == null || xml.trim().isEmpty()) {
-                System.out.println("Chilkat验签：XML为空，跳过");
-                return;
-            }
-
-            CkXmlDSig dsig = new CkXmlDSig();
-            dsig.put_VerboseLogging(false);
-
-            boolean loaded = dsig.LoadSignature(xml);
-            if (!loaded) {
-                System.out.println("Chilkat验签：LoadSignature失败");
-                System.out.println(dsig.lastErrorText());
-                return;
-            }
-
-            int numSignatures = dsig.get_NumSignatures();
-            for (int i = 0; i < numSignatures; i++) {
-                dsig.put_Selector(i);
-                boolean ok = dsig.VerifySignature(true);
-                System.out.println("Chilkat验签[" + i + "]: " + (ok ? "有效" : "无效"));
-                if (!ok) {
-                    System.out.println(dsig.lastErrorText());
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Chilkat验签异常: " + e.getMessage());
-        }
-    }
-
-    private static String buildKeyInfoXml(X509Certificate cert) throws Exception {
-        PublicKey pk = cert.getPublicKey();
-        if (!(pk instanceof java.security.interfaces.RSAPublicKey)) {
-            throw new IllegalArgumentException("仅支持 RSA 证书进行 KeyValue 输出");
-        }
-        java.security.interfaces.RSAPublicKey rsa = (java.security.interfaces.RSAPublicKey) pk;
-        String modulus = java.util.Base64.getEncoder().encodeToString(toUnsigned(rsa.getModulus()));
-        String exponent = java.util.Base64.getEncoder().encodeToString(toUnsigned(rsa.getPublicExponent()));
-
-        String x509 = java.util.Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.US_ASCII))
-                .encodeToString(cert.getEncoded());
-
-        return "<KeyValue><RSAKeyValue><Modulus>" + modulus + "</Modulus><Exponent>" + exponent + "</Exponent></RSAKeyValue></KeyValue>"
-                + "<X509Data><X509Certificate>" + x509 + "</X509Certificate></X509Data>";
-    }
 
     private static byte[] toUnsigned(BigInteger bi) {
         if (bi == null) return new byte[0];
@@ -1005,14 +742,7 @@ public class InvoiceGenerator {
             }
         }
 
-        // 底线约定：本项目仅使用 Chilkat 生成 XMLDSIG（Documento + SetDTE 两级签名）。
-        // 若确需切换其它签名器，仅用于对照实验，需显式传入 -Dsii.allowNonChilkatSigner=true
-        String signer = System.getProperty("sii.signer", "chilkat");
-        boolean allowNonChilkatSigner = Boolean.parseBoolean(System.getProperty("sii.allowNonChilkatSigner", "false"));
-        if (!allowNonChilkatSigner && (signer == null || !signer.trim().equalsIgnoreCase("chilkat"))) {
-            throw new IllegalStateException("签名器已被限制为 Chilkat。如需对照实验，请设置 -Dsii.allowNonChilkatSigner=true 且显式指定 -Dsii.signer=...。");
-        }
-
+        String signer = System.getProperty("sii.signer", "santuario-chilkat-compat");
         boolean santuarioCompat = signer != null && signer.trim().equalsIgnoreCase("santuario-chilkat-compat");
 
         if (signer != null && signer.trim().equalsIgnoreCase("xmlsec")) {
@@ -1120,69 +850,6 @@ public class InvoiceGenerator {
             validateSignaturesWithSantuario(finalXml);
             return finalXml;
         }
-        if (signer != null && signer.trim().equalsIgnoreCase("chilkat")) {
-            Element docEl = (Element) doc.getElementsByTagName("Documento").item(0);
-            Element setEl = (Element) doc.getElementsByTagName("SetDTE").item(0);
-            if (docEl == null || setEl == null) {
-                throw new IllegalStateException("Chilkat 签名：未找到 Documento/SetDTE 元素");
-            }
-
-            // 避免 Chilkat 在计算 Digest 时对祖先默认命名空间(in-scope xmlns)处理差异导致摘要不一致。
-            // 显式把默认命名空间写到被签名的元素上，确保 canonicalize 输出稳定。
-            String siiNs = "http://www.sii.cl/SiiDte";
-            try {
-                if (!docEl.hasAttribute("xmlns") && (docEl.getNamespaceURI() == null || siiNs.equals(docEl.getNamespaceURI()))) {
-                    docEl.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
-                }
-                if (!setEl.hasAttribute("xmlns") && (setEl.getNamespaceURI() == null || siiNs.equals(setEl.getNamespaceURI()))) {
-                    setEl.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", siiNs);
-                }
-            } catch (Exception ignored) {
-            }
-
-            String unsignedXml = toCleanString(doc);
-
-            String docId = docEl.getAttribute("ID");
-            String setId = setEl.getAttribute("ID");
-            if (docId == null || docId.trim().isEmpty() || setId == null || setId.trim().isEmpty()) {
-                throw new IllegalStateException("Chilkat 签名：Documento/SetDTE 缺少 ID 属性");
-            }
-
-            String xmlAfterDocSig = signXmlWithChilkat(
-                    unsignedXml,
-                    "EnvioBOLETA|SetDTE|DTE",
-                    0,
-                    docId,
-                    certEmisor,
-                    privateKeyEmisor,
-                    System.getProperty("chilkat.behaviors.inner", "IndentedSignature")
-            );
-
-            System.out.println("Chilkat 内层签名完成，开始 Chilkat 本地验签");
-            validateSignaturesWithChilkat(xmlAfterDocSig);
-
-            String xmlAfterSetSig = signXmlWithChilkat(
-                    xmlAfterDocSig,
-                    "EnvioBOLETA",
-                    0,
-                    setId,
-                    certEnvia,
-                    privateKeyEnvia,
-                    System.getProperty("chilkat.behaviors.outer", "SignExistingSignatures")
-            );
-
-            String finalXml = saveXmlStringRaw(xmlAfterSetSig, filePrefix + "_05_最终XML_发送.xml");
-
-            validateSignaturesWithChilkat(finalXml);
-
-            boolean extraVerify = Boolean.parseBoolean(System.getProperty("sii.extraVerify", "false"));
-            if (extraVerify) {
-                validateSignaturesAfterSerialize(finalXml);
-                validateSignaturesWithSantuario(finalXml);
-            }
-            return finalXml;
-        }
-
         if (santuarioCompat) {
             SantuarioChilkatCompatInstaller.install();
         }
@@ -1211,6 +878,58 @@ public class InvoiceGenerator {
         validateSignaturesAfterSerialize(finalXml);
         validateSignaturesWithSantuario(finalXml);
         return finalXml;
+    }
+
+    private static void signXmlForSiiSantuarioElement(Document doc, Element target, PrivateKey privateKey, List<X509Certificate> certChain, boolean santuarioCompat) throws Exception {
+        Init.init();
+
+        if (doc == null || target == null) {
+            throw new IllegalArgumentException("doc/target is null");
+        }
+
+        ensureSiiDteDefaultNamespaceDeclared(target);
+
+        String idValue = target.getAttribute("ID");
+        if (idValue == null || idValue.isEmpty()) {
+            throw new IllegalArgumentException("目标元素缺少 ID 属性");
+        }
+        target.setIdAttribute("ID", true);
+        registerSantuarioIdAttributes(doc);
+
+        org.apache.xml.security.utils.ElementProxy.setDefaultPrefix(Constants.SignatureSpecNS, "");
+
+        org.apache.xml.security.signature.XMLSignature sig = new org.apache.xml.security.signature.XMLSignature(
+                doc,
+                "",
+                org.apache.xml.security.signature.XMLSignature.ALGO_ID_SIGNATURE_RSA_SHA1,
+                org.apache.xml.security.c14n.Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS
+        );
+
+        sig.getElement().setPrefix(null);
+        sig.getElement().setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns", Constants.SignatureSpecNS);
+
+        Node parent = target.getParentNode();
+        Node next = target.getNextSibling();
+        if (next != null) {
+            parent.insertBefore(sig.getElement(), next);
+        } else {
+            parent.appendChild(sig.getElement());
+        }
+
+        Transforms transforms = new Transforms(doc);
+        if (santuarioCompat) {
+            transforms.addTransform(Transforms.TRANSFORM_C14N_OMIT_COMMENTS);
+        } else {
+            transforms.addTransform(Transforms.TRANSFORM_ENVELOPED_SIGNATURE);
+        }
+        sig.addDocument("#" + idValue, transforms, org.apache.xml.security.utils.Constants.ALGO_ID_DIGEST_SHA1);
+
+        if (certChain != null && !certChain.isEmpty() && certChain.get(0) != null) {
+            sig.addKeyInfo(certChain.get(0).getPublicKey());
+            sig.addKeyInfo(certChain.get(0));
+        }
+
+        sig.sign(privateKey);
     }
 
     private static List<X509Certificate> extendCertChainFromAia(List<X509Certificate> existing) throws Exception {

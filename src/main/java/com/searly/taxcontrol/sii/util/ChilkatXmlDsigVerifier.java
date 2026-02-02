@@ -1,25 +1,25 @@
 package com.searly.taxcontrol.sii.util;
 
-import com.chilkatsoft.CkXmlDSig;
-import com.chilkatsoft.CkString;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.security.PublicKey;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 
-public class ChilkatXmlDsigVerifier {
+import javax.xml.parsers.DocumentBuilderFactory;
 
-    static {
-        try {
-            System.loadLibrary("chilkat");
-        } catch (UnsatisfiedLinkError e) {
-            System.err.println("Native code library failed to load: " + e);
-            System.err.println("请确保 chilkat.dll 可被找到（建议 VM 参数: -Djava.library.path=chilkat-jdk11-x64 ），或将 chilkat.dll 放入 PATH。");
-            System.exit(1);
-        }
-    }
+import org.apache.xml.security.Init;
+import org.apache.xml.security.keys.KeyInfo;
+import org.apache.xml.security.signature.XMLSignature;
+import org.apache.xml.security.utils.Constants;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+public class ChilkatXmlDsigVerifier {
 
     public static void main(String[] args) throws Exception {
         String pathStr = args != null && args.length > 0 ? args[0] : null;
@@ -53,90 +53,104 @@ public class ChilkatXmlDsigVerifier {
     }
 
     private static boolean verifyAll(String xml) {
-        CkXmlDSig dsig = new CkXmlDSig();
-        dsig.put_VerboseLogging(true);
-
-        boolean success = dsig.LoadSignature(xml);
-        if (!success) {
-            System.out.println("LoadSignature failed");
-            System.out.println(dsig.lastErrorText());
-            return false;
-        }
-
-        int numSignatures = dsig.get_NumSignatures();
-        System.out.println("NumSignatures=" + numSignatures);
-
-        boolean allOk = true;
-
-        for (int i = 0; i < numSignatures; i++) {
-            dsig.put_Selector(i);
-
-            boolean sigOk = dsig.VerifySignature(false);
-            System.out.println("Signature " + (i + 1) + " VerifySignature(false)=" + sigOk);
-            if (!sigOk) {
-                System.out.println(dsig.lastErrorText());
-                allOk = false;
+        try {
+            if (xml == null || xml.trim().isEmpty()) {
+                System.out.println("Santuario验签：XML为空");
+                return false;
             }
 
-            int numRefs = dsig.get_NumReferences();
-            System.out.println("  NumReferences=" + numRefs);
+            Init.init();
 
-            for (int j = 0; j < numRefs; j++) {
-                String uri = dsig.referenceUri(j);
-                boolean refOk = dsig.VerifyReferenceDigest(j);
-                System.out.println("  Reference[" + (j + 1) + "] uri=" + uri + " verified=" + refOk);
-                if (!refOk) {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
+            Document doc = dbf.newDocumentBuilder().parse(new java.io.ByteArrayInputStream(xml.getBytes(StandardCharsets.ISO_8859_1)));
+
+            registerAllIds(doc);
+
+            NodeList sigNodes = doc.getElementsByTagNameNS(Constants.SignatureSpecNS, "Signature");
+            if (sigNodes == null) {
+                return false;
+            }
+
+            int numSignatures = sigNodes.getLength();
+            System.out.println("NumSignatures=" + numSignatures);
+            if (numSignatures == 0) {
+                return false;
+            }
+
+            boolean allOk = true;
+            for (int i = 0; i < numSignatures; i++) {
+                Node n = sigNodes.item(i);
+                if (!(n instanceof Element)) {
+                    continue;
+                }
+                Element sigEl = (Element) n;
+                XMLSignature sig = new XMLSignature(sigEl, "");
+
+                PublicKey pk = null;
+                KeyInfo ki = sig.getKeyInfo();
+                if (ki != null) {
+                    try {
+                        pk = ki.getPublicKey();
+                    } catch (Exception ignored) {
+                        pk = null;
+                    }
+
+                    if (pk == null) {
+                        try {
+                            X509Certificate cert = ki.getX509Certificate();
+                            if (cert != null) {
+                                pk = cert.getPublicKey();
+                            }
+                        } catch (Exception ignored) {
+                            pk = null;
+                        }
+                    }
+                }
+
+                boolean sigOk = false;
+                try {
+                    if (pk != null) {
+                        sigOk = sig.checkSignatureValue(pk);
+                    }
+                } catch (Exception ignored) {
+                    sigOk = false;
+                }
+
+                System.out.println("Signature " + (i + 1) + " VerifySignature(true)=" + sigOk);
+                if (!sigOk) {
                     allOk = false;
-                    System.out.println("    RefFailReason=" + dsig.get_RefFailReason());
-                    System.out.println(dsig.lastErrorText());
-
-				String id = uri;
-				if (id != null && id.startsWith("#")) {
-					id = id.substring(1);
-				}
-				String c14n = tryCanonicalizeFragment(dsig, xml, id);
-				if (c14n != null) {
-					String sha1b64 = sha1Base64(c14n.getBytes(StandardCharsets.UTF_8));
-					System.out.println("    C14N(SHA1,b64)=" + sha1b64);
-					int previewLen = Math.min(300, c14n.length());
-					System.out.println("    C14N preview=" + c14n.substring(0, previewLen));
-				}
                 }
             }
 
-            boolean sigOkWithRefs = dsig.VerifySignature(true);
-            System.out.println("Signature " + (i + 1) + " VerifySignature(true)=" + sigOkWithRefs);
-            if (!sigOkWithRefs) {
-                allOk = false;
-                System.out.println(dsig.lastErrorText());
-            }
+            return allOk;
+        } catch (Exception e) {
+            System.out.println("Santuario验签异常: " + e.getMessage());
+            return false;
         }
-
-        return allOk;
     }
 
-	private static String tryCanonicalizeFragment(CkXmlDSig dsig, String xml, String idWithoutHash) {
-		try {
-			CkString out = new CkString();
-			String alg = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315";
-			boolean ok = dsig.CanonicalizeFragment(xml, idWithoutHash, alg, "", false, out);
-			if (ok) {
-				return out.getString();
-			}
-		} catch (Exception ignored) {
-		}
-		return null;
-	}
-
-	private static String sha1Base64(byte[] bytes) {
-		try {
-			MessageDigest md = MessageDigest.getInstance("SHA-1");
-			byte[] dig = md.digest(bytes);
-			return Base64.getEncoder().encodeToString(dig);
-		} catch (Exception e) {
-			return "";
-		}
-	}
+    private static void registerAllIds(Document doc) {
+        if (doc == null) {
+            return;
+        }
+        NodeList all = doc.getElementsByTagName("*");
+        if (all == null) {
+            return;
+        }
+        for (int i = 0; i < all.getLength(); i++) {
+            Node n = all.item(i);
+            if (n instanceof Element) {
+                Element e = (Element) n;
+                try {
+                    if (e.hasAttribute("ID")) {
+                        e.setIdAttribute("ID", true);
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
 
     private static String stripXsiSchemaLocationForChilkat(String xml) {
         if (xml == null || xml.isEmpty()) return xml;
