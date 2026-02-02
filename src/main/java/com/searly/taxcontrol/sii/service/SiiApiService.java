@@ -5,7 +5,9 @@ import com.searly.taxcontrol.sii.config.SiiConfig;
 import com.searly.taxcontrol.sii.exception.SiiApiException;
 import com.searly.taxcontrol.sii.model.request.EnvioPost;
 import com.searly.taxcontrol.sii.model.request.InvoiceSendRequest;
-import com.searly.taxcontrol.sii.model.response.GetTokenResponse;
+import com.searly.taxcontrol.sii.model.common.InvoiceData;
+import com.searly.taxcontrol.sii.swingtool.ConsumoFoliosGenerator;
+import com.searly.taxcontrol.sii.swingtool.SiiToolProperties;
 import com.searly.taxcontrol.sii.model.response.ResultadoEnvioDataRespuesta;
 import com.searly.taxcontrol.sii.model.response.ResultadoEnvioDataRespuestaDetalleRepRech;
 import com.searly.taxcontrol.sii.model.response.ResultadoEnvioDataRespuestaError;
@@ -35,11 +37,18 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
+import java.security.MessageDigest;
+import java.security.PublicKey;
+import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -90,6 +99,105 @@ public class SiiApiService implements SiiApi {
     log.info("验证地址: " + validateUrl);
     log.info("已启用自动重定向处理");
 
+  }
+
+  public String registerDailyReport(InvoiceSendRequest request, List<InvoiceData> invoices, String endpointPath) {
+    try {
+      if (invoices == null || invoices.isEmpty()) {
+        throw new SiiApiException("invoices is empty");
+      }
+
+      for (InvoiceData inv : invoices) {
+        if (inv.getRutEmisor() == null || inv.getRutEmisor().trim().isEmpty()) {
+          throw new SiiApiException("Invoice rutEmisor is required for RVD");
+        }
+      }
+
+      String rutEmisor = invoices.get(0).getRutEmisor();
+      String[] rutParts = rutEmisor.split("-");
+      if (rutParts.length != 2) {
+        throw new SiiApiException("rutEmisor 格式不正确，应为 XXXXX-XX: " + rutEmisor);
+      }
+
+      request.setRutCompany(rutParts[0]);
+      request.setDvCompany(rutParts[1]);
+      request.setRutSender(rutParts[0]);
+      request.setDvSender(rutParts[1]);
+
+      String token = getOrCreateToken(rutParts[0]);
+
+      KeyStore keyStore;
+      if (certificate != null) {
+        keyStore = CertificateManager.loadPKCS12Certificate(certificate, certificatePassword);
+      } else {
+        keyStore = CertificateManager.loadPKCS12Certificate(certificatePath, certificatePassword);
+      }
+
+      byte[] cafBytes = readStreamFully(request.getCafFile());
+      if (cafBytes == null || cafBytes.length == 0) {
+        throw new SiiApiException("CAF 文件不能为空");
+      }
+
+      validateCafRut(cafBytes, rutEmisor);
+
+      String rvdXml = createRvdXml(invoices, keyStore, request, cafBytes);
+      EnvioPost envioPost = createEnvioPost(request);
+
+      return sendRvd(token, envioPost, rvdXml.getBytes(StandardCharsets.ISO_8859_1), endpointPath);
+    } catch (Exception e) {
+      throw new SiiApiException("register daily report failure: " + e.getMessage(), e);
+    }
+  }
+
+  private String createRvdXml(List<InvoiceData> invoices, KeyStore keyStore, InvoiceSendRequest request, byte[] cafBytes) throws Exception {
+    SiiToolProperties props = new SiiToolProperties();
+    InvoiceData first = invoices.get(0);
+    props.rutEmisor = first.getRutEmisor();
+    props.rutEnvia = first.getRutEnvia() != null ? first.getRutEnvia() : request.getRutSender() + "-" + request.getDvSender();
+    props.aliasDocumento = request.getAliasDocumento();
+    props.aliasSetDte = request.getAliasSetDte();
+    props.certificatePassword = certificatePassword;
+    props.certificatePath = certificatePath;
+
+    if (cafBytes != null) {
+      com.searly.taxcontrol.sii.util.CAFResolve.CafData cafData;
+      try (ByteArrayInputStream cafStream = new ByteArrayInputStream(cafBytes)) {
+        cafData = com.searly.taxcontrol.sii.util.CAFResolve.loadCaf(cafStream);
+      }
+      props.fchResol = cafData.fa;
+      props.nroResol = cafData.idk;
+    }
+
+    if (certificate != null) {
+      props.certificatePath = null;
+    }
+
+    return ConsumoFoliosGenerator.generateAndSign(props, invoices, 1, keyStore, certificatePassword);
+  }
+
+  private void validateCafRut(byte[] cafBytes, String expectedRut) {
+    if (cafBytes == null) {
+      return;
+    }
+    try (ByteArrayInputStream cafStream = new ByteArrayInputStream(cafBytes)) {
+      com.searly.taxcontrol.sii.util.CAFResolve.CafData cafData = com.searly.taxcontrol.sii.util.CAFResolve.loadCaf(cafStream);
+      if (!expectedRut.equals(cafData.re)) {
+        throw new SiiApiException("CAF RUT 与发票 RUT 不一致: " + cafData.re + " != " + expectedRut);
+      }
+    } catch (Exception e) {
+      throw new SiiApiException("验证 CAF 失败: " + e.getMessage(), e);
+    }
+  }
+
+  private byte[] readStreamFully(InputStream stream) {
+    if (stream == null) {
+      return null;
+    }
+    try {
+      return stream.readAllBytes();
+    } catch (IOException e) {
+      throw new SiiApiException("读取输入流失败: " + e.getMessage(), e);
+    }
   }
 
   public String getOrCreateToken(String rutDigits) {

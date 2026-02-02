@@ -6,6 +6,11 @@ import com.searly.taxcontrol.sii.model.request.InvoiceSendRequest;
 import com.searly.taxcontrol.sii.model.response.ResultadoEnvioPost;
 import com.searly.taxcontrol.sii.model.response.SiiEnvioStatusResponse;
 import com.searly.taxcontrol.sii.service.SiiApiService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/sii")
@@ -29,6 +35,12 @@ public class SiiController {
         this.objectMapper = objectMapper;
     }
 
+    @Operation(
+            summary = "发送电子发票",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "发送成功", content = @Content(schema = @Schema(implementation = ResultadoEnvioPost.class)))
+            }
+    )
     @PostMapping(value = "/invoices", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResultadoEnvioPost registerInvoice(
             @RequestPart("request") String requestJson,
@@ -52,6 +64,31 @@ public class SiiController {
         }
     }
 
+    @Operation(
+            summary = "发送日结（RVD）",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "发送成功", content = @Content(schema = @Schema(implementation = String.class)))
+            }
+    )
+    @PostMapping(value = "/rvd", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public String registerDailyReport(
+            @RequestPart("request") String requestJson,
+            @RequestPart("caf") MultipartFile caf
+    ) throws Exception {
+        RegisterDailyReportRequest req = objectMapper.readValue(requestJson, RegisterDailyReportRequest.class);
+
+        InvoiceSendRequest sendRequest = new InvoiceSendRequest();
+        sendRequest.setAliasDocumento(req.aliasDocumento);
+        sendRequest.setAliasSetDte(req.aliasSetDte);
+
+        byte[] cafBytes = caf.getBytes();
+        try (ByteArrayInputStream is = new ByteArrayInputStream(cafBytes)) {
+            sendRequest.setCafFile(is);
+            String endpoint = (req.endpointPath == null || req.endpointPath.isBlank()) ? "/boleta.electronica.rvd" : req.endpointPath;
+            return siiApiService.registerDailyReport(sendRequest, req.invoices, endpoint);
+        }
+    }
+
     @GetMapping("/invoices/{rut}-{dv}/{trackId}")
     public SiiEnvioStatusResponse queryInvoice(
             @PathVariable("rut") String rut,
@@ -69,5 +106,12 @@ public class SiiController {
         public InvoiceData invoiceData;
         public String aliasDocumento;
         public String aliasSetDte;
+    }
+
+    public static class RegisterDailyReportRequest {
+        public List<InvoiceData> invoices;
+        public String aliasDocumento;
+        public String aliasSetDte;
+        public String endpointPath;
     }
 }
